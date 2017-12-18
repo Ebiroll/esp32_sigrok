@@ -35,6 +35,7 @@ SOFTWARE.
 #include <string.h>
 #include <sys/time.h>
 #include "read_chars.h"
+#include "esp32_sump.h" 
 
 static const char *TAG = "uart";
 
@@ -52,9 +53,9 @@ static void uartECHOTask(void *inpar) {
 //        txPin = 35;
   char* data;
 
-  uart_port_t uart_num = UART_NUM_1;                                     //uart port number
+  uart_port_t uart_num = UART_NUM_0;                                     //uart port number
   uart_config_t uart_config = {
-      .baud_rate = 9600,                     //baudrate
+      .baud_rate = 115200,                    //baudrate
       .data_bits = UART_DATA_8_BITS,          //data bit mode
       .parity = UART_PARITY_DISABLE,          //parity mode
       .stop_bits = UART_STOP_BITS_1,          //stop bit mode
@@ -74,7 +75,10 @@ static void uartECHOTask(void *inpar) {
      //vTaskDelay(100 / portTICK_PERIOD_MS);
      int size = uart_read_bytes(uart_num, (unsigned char *)echoLine, 1, portMAX_DELAY);
      printf("%c",echoLine[0]);
+     // To run the sump protocol 
+     //sump();
   }
+  sump();
 }
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
