@@ -40,20 +40,18 @@ SOFTWARE.
 static const char *TAG = "uart";
 
 
-
 #define BUF_SIZE 512
 
 char echoLine[BUF_SIZE];
 
 
-
-// This task only prints what is received on UART1
-static void uartECHOTask(void *inpar) {
-//        rxPin = 13;
-//        txPin = 35;
-  char* data;
-
+static void init_uart()
+{
   uart_port_t uart_num = UART_NUM_0;                                     //uart port number
+//        rxPin = 13;
+//        txPin = 12;
+
+
   uart_config_t uart_config = {
       .baud_rate = 115200,                    //baudrate
       .data_bits = UART_DATA_8_BITS,          //data bit mode
@@ -65,8 +63,16 @@ static void uartECHOTask(void *inpar) {
   ESP_LOGI(TAG, "Setting UART configuration number %d...", uart_num);
   ESP_ERROR_CHECK( uart_param_config(uart_num, &uart_config));
   QueueHandle_t uart_queue;
-  ESP_ERROR_CHECK( uart_set_pin(uart_num, 12, 13, -1, -1));
+  //ESP_ERROR_CHECK( uart_set_pin(uart_num, 12, 13, -1, -1));
   ESP_ERROR_CHECK( uart_driver_install(uart_num, 512 * 2, 512 * 2, 10,  &uart_queue,0));
+
+}
+
+
+// This task only prints what is received on UART1
+static void uartECHOTask(void *inpar) {
+  char* data;
+  uart_port_t uart_num = UART_NUM_0;                                     //uart port number
 
   printf("ESP32 uart echo\n");
 
@@ -101,6 +107,8 @@ uint32_t get_usec() {
 void app_main(void)
 {
     nvs_flash_init();
+    init_uart();
+    //sump();
     xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
 
 

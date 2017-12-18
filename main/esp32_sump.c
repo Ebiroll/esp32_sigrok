@@ -259,9 +259,10 @@ static void tim_set_prescaler(void)
 
 static void sump_init(void)
 {
+        buffer=malloc(STATES_LEN*sizeof(uint16_t));
+        timer_queue = xQueueCreate(10, sizeof(timer_event_t));
 	portc_init();
 	tim_init();
-    timer_queue = xQueueCreate(10, sizeof(timer_event_t));
 }
 
 static void get_samples(void)
