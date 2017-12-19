@@ -26,6 +26,7 @@
 #include "read_chars.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+//#include "freertos/ringbuf.h"
 #include "soc/timer_group_struct.h"
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
@@ -163,6 +164,13 @@ static void example_tg0_timer_init(int timer_idx,  double timer_interval_sec)
     timer_start(TIMER_GROUP_0, timer_idx);
 }
 
+uint16_t getSample() {
+	// TODO, there should be a 
+	return (gpio_get_level(12) || 
+	        (gpio_get_level(13) << 1) ||  
+			(gpio_get_level(14) << 2) );
+
+}
 
 static void portc_init(void)
 {
@@ -259,8 +267,8 @@ static void tim_set_prescaler(void)
 
 static void sump_init(void)
 {
-        buffer=malloc(STATES_LEN*sizeof(uint16_t));
-        timer_queue = xQueueCreate(10, sizeof(timer_event_t));
+    buffer=malloc(STATES_LEN*sizeof(uint16_t));
+    timer_queue = xQueueCreate(10, sizeof(timer_event_t));
 	portc_init();
 	tim_init();
 }
@@ -289,9 +297,9 @@ static void get_samples(void)
 				//Wait for timer...
 			//}
 			timer_event_t evt;
-                        xQueueReceive(timer_queue, &evt, portMAX_DELAY);
+            xQueueReceive(timer_queue, &evt, portMAX_DELAY);
 
-
+			*(buffer+INDEX) = getSample();
 			//*(buffer+INDEX) = GPIOC->IDR;
 			//TIM4->SR &= ~TIM_SR_UIF;  //clear overflow flag
 			if ( !((*(buffer+INDEX) ^ config_trigger_value) & config_trigger_mask) ) {
@@ -312,6 +320,10 @@ static void get_samples(void)
 			//while( !(TIM4->SR & TIM_SR_UIF)) {
 				//Wait for timer...
 			//}
+			timer_event_t evt;
+            xQueueReceive(timer_queue, &evt, portMAX_DELAY);
+
+			*(buffer+INDEX) = getSample();
 
 			//*(buffer+INDEX) = GPIOC->IDR;
 			//TIM4->SR &= ~TIM_SR_UIF;  //clear overflow flag
