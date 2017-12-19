@@ -108,8 +108,21 @@ void app_main(void)
 {
     nvs_flash_init();
     init_uart();
-    //sump();
+    sump();
+
     xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
+
+
+    for(;;) 
+    {
+        int *GPIO_STRAP_TEST=(int *)0x3ff44038;
+        printf( "GPIO STRAP REG=%08X\n", *GPIO_STRAP_TEST);
+
+        int *GPIO_IN_REG_TEST=(int *)0x3ff4403C;
+        printf( "GPIO_IN_REG=%08X\n", *GPIO_IN_REG_TEST);
+
+        vTaskDelay(4000 / portTICK_PERIOD_MS);
+    }
 
 
 #if 0

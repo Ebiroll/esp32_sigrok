@@ -165,7 +165,8 @@ static void example_tg0_timer_init(int timer_idx,  double timer_interval_sec)
 }
 
 uint16_t getSample() {
-	// TODO, there should be a 
+	// 0x3FF4403C
+	// TODO, there should be a more direct way to read this
 	return (gpio_get_level(12) || 
 	        (gpio_get_level(13) << 1) ||  
 			(gpio_get_level(14) << 2) );
