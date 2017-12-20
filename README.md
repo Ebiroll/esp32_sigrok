@@ -1,4 +1,4 @@
-#Sigrok esp 32 
+# Sigrok esp 32 
 
 A SUMP compatible Logical Analyser for the esp32, for use with i.e sigrok
 https://en.wikipedia.org/wiki/Sigrok
@@ -31,7 +31,8 @@ app_main() {
 ```
 When starting the sigrok gui, pulseview, the device was identified and this is how the timing analysis looks like.
 
-[[ https://raw.githubusercontent.com/Ebiroll/esp32_sigrok/master/sigrok.png ]]
+![sigrok](sigrok.png)
+[https://raw.githubusercontent.com/Ebiroll/esp32_sigrok/master/sigrok.png ]
 
 
 # Some other SUMP implementations,
