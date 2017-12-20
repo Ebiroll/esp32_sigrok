@@ -65,9 +65,11 @@ int char_read_timeout(unsigned char *buff, int num_bytes, int timeout) {
 	unsigned char *ptr = buff;
 	while(1) {
 		size = uart_read_bytes(0, (unsigned char *)ptr, 1, portMAX_DELAY);
+		//printf("%c\n",*ptr);
 		if (size == 1) {
 			num_read++;
 			ptr++;
+			return num_read;
 		} else {
             return num_read;
 		}						

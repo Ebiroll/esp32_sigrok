@@ -34,7 +34,7 @@
 #define STATES_LEN 8192
 
 // Timer variables to use for 
-#define TIMER_DIVIDER         8  //  Hardware timer clock divider
+#define TIMER_DIVIDER         2  //  Hardware timer clock divider
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
 #define TIMER_INTERVAL0_SEC   (0.001) // sample test interval for the first timer 1kHz
 
@@ -165,11 +165,13 @@ static void example_tg0_timer_init(int timer_idx,  double timer_interval_sec)
 }
 
 uint16_t getSample() {
-	// 0x3FF4403C
+	// 0x3FF4403C, GPIO_IN_REG
 	// TODO, there should be a more direct way to read this
 	return (gpio_get_level(12) || 
 	        (gpio_get_level(13) << 1) ||  
-			(gpio_get_level(14) << 2) );
+			(gpio_get_level(14) << 2) ||
+			(gpio_get_level(15) << 3) ||
+			(gpio_get_level(16) << 4));
 
 }
 
@@ -181,21 +183,21 @@ static void portc_init(void)
             14,
             15,
             16,
-            17,
-            18,
-            19,
-            20,
-            21,
-            22,
-            23,
-            24,
-            25,
-            26,
-            27
+            //17,
+            //18,
+            //19,
+            //20,
+            //21,
+            //22,
+            //23,
+            //24,
+            //25,
+            //26,
+            //27
     };
     gpio_config_t conf = {
             .mode = GPIO_MODE_INPUT,
-            .pull_up_en = GPIO_PULLUP_ENABLE,
+            .pull_up_en = GPIO_PULLUP_DISABLE,
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
             .intr_type = GPIO_INTR_DISABLE
     };
@@ -231,7 +233,7 @@ static void tim_init(void)
 {
 	example_tg0_timer_init(TIMER_0, TIMER_INTERVAL0_SEC);
 	// Test the timer events
-	xTaskCreate(timer_example_evt_task, "timer_evt_task", 2048, NULL, 5, NULL);
+	//xTaskCreate(timer_example_evt_task, "timer_evt_task", 2048, NULL, 5, NULL);
 #if 0
 	htim.Instance = TIM4;
 
@@ -373,10 +375,10 @@ void sump()
 	uint8_t sump_parameters[4] = {0};
 	uint32_t index=0;
 
-	while (!(gpio_get_level(0)==1)) {
+	while (!(gpio_get_level(0)==0)) {
 		if(char_read_timeout( &sump_command, 1, 1)) {
 			switch(sump_command) {
-			case SUMP_RESET:
+			case SUMP_RESET:			
 				break;
 			case SUMP_ID:
 				printf( "1ALS");
@@ -502,6 +504,7 @@ void sump()
 			}
 		}
 	}
+	printf("SUMP EXIT\n");
 	sump_deinit();
 }
 
