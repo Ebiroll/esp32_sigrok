@@ -31,7 +31,7 @@ app_main() {
 ```
 When starting the sigrok gui, pulseview, the device was identified and this is how the timing analysis looks like.
 
-[[https://raw.githubusercontent.com/Ebiroll/esp32_sigrok/master/sigrok.png]]
+[[ https://raw.githubusercontent.com/Ebiroll/esp32_sigrok/master/sigrok.png ]]
 
 
 # Some other SUMP implementations,
