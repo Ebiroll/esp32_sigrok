@@ -34,6 +34,23 @@ When starting the sigrok gui, pulseview, the device was identified and this is h
 ![sigrok](sigrok.png)
 [https://raw.githubusercontent.com/Ebiroll/esp32_sigrok/master/sigrok.png ]
 
+# Analysis of UART 9600 Baud
+```
+static void uartWRITETask(void *inpar) {
+  uart_port_t uart_num = UART_NUM_1;    
+  echoLine[0]='s';
+  echoLine[1]='u';
+  echoLine[2]='m';
+  echoLine[3]='p';
+
+  while(true) {
+    int size = uart_write_bytes(uart_num, (const char *)echoLine, 4);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+```
+![uart](uart.png)
+
 
 # Some other SUMP implementations,
 
