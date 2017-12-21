@@ -10,11 +10,47 @@ Pins defined for logical input.
             13,
             14,
             15,
-            16,
 ```
 
-After making sure you use the correct Component config → ESP32-specific -> Main XTAL frequency
-A good idea, might be to set these.
+The key to using the ESP32 with sigrok was using the WROVER kit. :-P
+Not the code in this repository... Accidental success. 
+I knew there was something strange when the code was working on the first try. It is thanks to the JTAG, chips on the WROVER. Starting pulseview with logging,  -l 5 it seems that the FTDI-LA drivers were used.
+https://sigrok.org/gitweb/?p=libsigrok.git;a=tree;f=src/hardware/ftdi-la
+For me it solves the problem and allows sampling tp to 10Mhz but maybe the code will be fixed one day.
+I found that cutecom allowed sending single HEX bytes, this is useful for debugging the SUMP protocol.
+
+
+In sigrok the following WROVER pins are mapped
+```
+PIN13 = ADBUS0
+PIN12 = ADBUS1
+PIN15 = ADBUS2
+PIN14 = ADBUS3
+```
+
+
+THE Jtag interface uses the following pins.
+```
+1 	CHIP_PU 	TRST_N
+2 	MTDO / GPIO15 	TDO
+3 	MTDI / GPIO12 	TDI
+4 	MTCK / GPIO13 	TCK
+5 	MTMS / GPIO14 	TMS
+```
+
+
+Also the following red/green blue led is available on the WROVER kit.
+```
+  RED    gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
+  GREEN  gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+  BLUE   gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+	gpio_set_level(GPIO_NUM_0, 0);
+```
+
+
+After making sure you use the correct Component config → 
+ESP32-specific -> Main XTAL frequency
+A good idea, might be to set these values.
 ```
   Bootloader log verbosity (No output)  --->    
   Compiler options ->  Optimization Level (Release (-Os)) 

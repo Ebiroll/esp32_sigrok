@@ -49,6 +49,41 @@ static const char *TAG = "uart";
 char echoLine[BUF_SIZE];
 
 
+static void init_uart_1()
+{
+  uart_port_t uart_num = UART_NUM_1;                                     //uart port number
+
+
+  uart_config_t uart_config = {
+      .baud_rate = 9600,                    //baudrate
+      .data_bits = UART_DATA_8_BITS,          //data bit mode
+      .parity = UART_PARITY_DISABLE,          //parity mode
+      .stop_bits = UART_STOP_BITS_1,          //stop bit mode
+      .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,  //hardware flow control(cts/rts)
+      .rx_flow_ctrl_thresh = 122,             //flow control threshold
+  };
+  ESP_LOGI(TAG, "Setting UART configuration number %d...", uart_num);
+  ESP_ERROR_CHECK( uart_param_config(uart_num, &uart_config));
+  QueueHandle_t uart_queue;
+  // Use default pins for the uart
+  ESP_ERROR_CHECK( uart_set_pin(uart_num, 18, 19 , -1, -1));
+  ESP_ERROR_CHECK( uart_driver_install(uart_num, 512 * 2, 512 * 2, 10,  &uart_queue,0));
+
+}
+
+static void uartWRITETask(void *inpar) {
+  uart_port_t uart_num = UART_NUM_1;    
+  echoLine[0]='s';
+  echoLine[1]='u';
+  echoLine[2]='m';
+  echoLine[3]='p';
+
+  while(true) {
+    int size = uart_write_bytes(uart_num, (const char *)echoLine, 4);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+
 static void init_uart()
 {
   uart_port_t uart_num = UART_NUM_0;                                     //uart port number
@@ -66,7 +101,7 @@ static void init_uart()
   ESP_ERROR_CHECK( uart_param_config(uart_num, &uart_config));
   QueueHandle_t uart_queue;
   // Use default pins for the uart
-  //ESP_ERROR_CHECK( uart_set_pin(uart_num, 12, 13, -1, -1));
+  //ESP_ERROR_CHECK( uart_set_pin(uart_num, 1, 3, -1, -1));
   ESP_ERROR_CHECK( uart_driver_install(uart_num, 512 * 2, 512 * 2, 10,  &uart_queue,0));
 
 }
@@ -78,10 +113,23 @@ static void uartECHOTask(void *inpar) {
   uart_port_t uart_num = UART_NUM_0;                                     //uart port number
 
   printf("ESP32 uart echo\n");
+  int level=0;
 
   while(1) {
-     int size = uart_read_bytes(uart_num, (unsigned char *)echoLine, 1, portMAX_DELAY);
-     printf("%c",echoLine[0]);
+     int size = uart_read_bytes(uart_num, (unsigned char *)echoLine, 1, 500/portTICK_PERIOD_MS);
+     if (size<=0) {
+         echoLine[0]='T';
+     }
+     gpio_set_level(GPIO_NUM_2, level);
+    if (level==1) 
+    {
+        level=0;
+    } else {
+        level=1;
+    }     
+     uart_write_bytes(uart_num, (char *)echoLine, 1);
+     //printf("%c",echoLine[0]);
+     uart_flush(0);
   }
   sump();
 }
@@ -109,7 +157,7 @@ void send_remote_pulses() {
 
   config.rmt_mode = RMT_MODE_TX;
   config.channel = RMT_CHANNEL_0;
-  config.gpio_num = STEP_PIN;
+  config.gpio_num = 14; //STEP_PIN;, we use pin 14 directly, this way no cable is needed.
   config.mem_block_num = 1;
   config.tx_config.loop_en = 1;
   config.tx_config.carrier_en = 0;
@@ -140,28 +188,51 @@ void app_main(void)
     nvs_flash_init();
     init_uart();
 
+    //gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+
+#if 0
+    // RGB leds on wrover kit
+        gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
+        gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+
+	    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+		gpio_set_level(GPIO_NUM_0, 0);
+        gpio_set_level(GPIO_NUM_2, 0);
+	    gpio_set_level(GPIO_NUM_4, 0);
+
+	}
+#endif
+
+
     // esp_err_t rmt_write_items(rmt_channel_t channel, rmt_item32_t *rmt_item, int item_num, bool wait_tx_done)
     send_remote_pulses();
     rmt_write_items(config.channel, items, 1, 0);
     //xTaskCreatePinnedToCore(&remoteTask, "remote", 4096, NULL, 20, NULL, 0);
 
+    // To look at test data for 
+    //init_uart_1();
+    //xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 1);
+
     sump();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
-
 #if 0
+    int test=0;
     for(;;) 
     {
-        int *GPIO_STRAP_TEST=(int *)0x3ff44038;
-        printf( "GPIO STRAP REG=%08X\n", *GPIO_STRAP_TEST);
+        //int *GPIO_STRAP_TEST=(int *)0x3ff44038;
+        //printf( "GPIO STRAP REG=%08X\n", *GPIO_STRAP_TEST);
 
         int *GPIO_IN_REG_TEST=(int *)0x3ff4403C;
-        printf( "GPIO_IN_REG=%08X\n", *GPIO_IN_REG_TEST);
+        if (test!=*GPIO_IN_REG_TEST) {
+            test=*GPIO_IN_REG_TEST;
+            printf( "GPIO_IN_REG=%08X\n", *GPIO_IN_REG_TEST);
 
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        }
+
+        //vTaskDelay(200 / portTICK_PERIOD_MS);
     }
 #endif
-
 #if 0
     tcpip_adapter_init();
     ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );

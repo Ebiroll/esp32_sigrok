@@ -106,15 +106,15 @@ void IRAM_ATTR timer_group0_isr(void *para)
        from the timer that reported the interrupt */
     uint32_t intr_status = TIMERG0.int_st_timers.val;
     TIMERG0.hw_timer[timer_idx].update = 1;
-    uint64_t timer_counter_value = 
-        ((uint64_t) TIMERG0.hw_timer[timer_idx].cnt_high) << 32
-        | TIMERG0.hw_timer[timer_idx].cnt_low;
+    //uint64_t timer_counter_value = 
+    //    ((uint64_t) TIMERG0.hw_timer[timer_idx].cnt_high) << 32
+    //    | TIMERG0.hw_timer[timer_idx].cnt_low;
 
     /* Prepare basic event data
        that will be then sent back to the main program task */
     timer_event_t evt;
-    evt.timer_idx = timer_idx;
-    evt.timer_counter_value = timer_counter_value;
+    //evt.timer_idx = timer_idx;
+    //evt.timer_counter_value = timer_counter_value;
 
     /* Clear the interrupt
        and update the alarm time for the timer with without reload */
@@ -167,23 +167,25 @@ static void example_tg0_timer_init(int timer_idx,  double timer_interval_sec)
 uint16_t getSample() {
 	// 0x3FF4403C, GPIO_IN_REG
 	// TODO, there should be a more direct way to read this
+
 	return (gpio_get_level(12) || 
 	        (gpio_get_level(13) << 1) ||  
-			(gpio_get_level(14) << 2) ||
+			//(gpio_get_level(14) << 2) ||
 			(gpio_get_level(15) << 3) ||
 			(gpio_get_level(16) << 4));
-
 }
 
 static void portc_init(void)
 {
 	    gpio_num_t pins[] = {
+			// JTAG, on the wrover kit
             12,
             13,
-            14,
+            //14,
             15,
-            16,
-            //17,
+			// Other
+            //16,
+            //17
             //18,
             //19,
             //20,
@@ -284,6 +286,7 @@ static void get_samples(void)
 	/* Lock Kernel for logic analyzer */
 	//chSysLock();
 
+	gpio_set_level(GPIO_NUM_2, 1);
 	//HAL_TIM_Base_Start(&htim);
 
 	if(config_state == SUMP_STATE_ARMED)
@@ -335,6 +338,7 @@ static void get_samples(void)
 			INDEX &= STATES_LEN-1;
 		}
 	}
+	gpio_set_level(GPIO_NUM_2, 0);
 
 	//chSysUnlock();
 	sconfig.state = SUMP_STATE_IDLE;
@@ -365,6 +369,9 @@ int cmd_sump()
 	return 1;
 }
 
+char reply[10];
+
+
 void sump()
 {
 
@@ -374,14 +381,33 @@ void sump()
 	uint8_t sump_command;
 	uint8_t sump_parameters[4] = {0};
 	uint32_t index=0;
-
-	while (!(gpio_get_level(0)==0)) {
-		if(char_read_timeout( &sump_command, 1, 1)) {
+	int size;
+	//printf("SUMP ENTER\n");
+	int level=1;
+	uart_flush(0);
+	
+	// !(gpio_get_level(0)==0)
+	while (true) {
+		if(char_read_timeout( &sump_command, 1, 500/portTICK_PERIOD_MS)) {
+		  	gpio_set_level(GPIO_NUM_2, level);
+			if (level==1) 
+			{
+				level=0;
+			} else {
+				level=1;
+			}
 			switch(sump_command) {
 			case SUMP_RESET:			
 				break;
 			case SUMP_ID:
-				printf( "1ALS");
+				reply[0]='1';
+				reply[1]='A';
+				reply[2]='L';
+				reply[3]='S';
+			    size = uart_write_bytes(0, (const char *)reply, 4);
+				uart_flush(0);
+
+				//printf( "1ALS");
 				break;
 			case SUMP_RUN:
 				INDEX=0;
@@ -397,42 +423,70 @@ void sump()
 					}
 					switch (sconfig.channels) {						
 					case 1:
-						printf( "%c%c%c%c", *(buffer+INDEX) & 0xff,zero,zero,zero);
+						reply[0]=*(buffer+INDEX) & 0xff;				
+				        reply[1]=0x00;
+				        reply[2]=0x00;
+				        reply[3]=0x00;
+						//sprintf( reply,"%c%c%c%c", *(buffer+INDEX) & 0xff,zero,zero,zero);
 						break;
 					case 2:
-						printf( "%c%c%c%c", (*(buffer+INDEX) & 0xff00)>>8,zero,zero,zero);
+						//sprintf( reply,"%c%c%c%c", (*(buffer+INDEX) & 0xff00)>>8,zero,zero,zero);
+						reply[0]=(*(buffer+INDEX) & 0xff00)>>8;				
+				        reply[1]=0x00;
+				        reply[2]=0x00;
+				        reply[3]=0x00;
 						break;
 					case 3:
-						printf( "%c%c%c%c", *(buffer+INDEX) & 0xff, (*(buffer+INDEX) & 0xff00)>>8,zero,zero);
+						reply[0]=*(buffer+INDEX) & 0xff;				
+				        reply[1]=(*(buffer+INDEX) & 0xff00)>>8;
+				        reply[2]=0x00;
+				        reply[3]=0x00;
+						//sprintf( reply,"%c%c%c%c", *(buffer+INDEX) & 0xff, (*(buffer+INDEX) & 0xff00)>>8,zero,zero);
 						break;
 					}
+					//printf("%s",reply);
+					size = uart_write_bytes(0, (const char *)reply, 4);
+					uart_flush(0);
 					sconfig.read_count--;
 				}
 				break;
 			case SUMP_DESC:
 				// device name string
-				printf( "%c", 0x01);
-				printf( "Esp32");
-				printf( "%c", 0x00);
+				//sprintf( reply,"%c%s%c", 0x01,"Esp32",0x00);
+				reply[0]=0x01;								
+				reply[1]='E';
+				reply[2]='S';
+				reply[3]='P';
+				reply[4]='3';
+				reply[5]='2';
+				reply[6]=0x0;
+				size = uart_write_bytes(0, (const char *)reply, 7);
+				//sprintf( reply,);
+				//printf( "%c", 0x00);
 				//sample memory (8192)
-				printf( "%c", 0x21);
-				printf( "%c", 0x00);
-				printf( "%c", 0x00);
-				printf( "%c", 0x20);
-				printf( "%c", 0x00);
+				reply[0]=0x21;								
+				reply[1]=0x00;
+				reply[2]=0x00;
+				reply[3]=0x20;
+				reply[4]=0x00;
+				size = uart_write_bytes(0, (const char *)reply, 5);
 				//sample rate (2MHz)
-				printf( "%c", 0x23);
-				printf( "%c", 0x00);
-				printf( "%c", 0x1E);
-				printf( "%c", 0x84);
-				printf( "%c", 0x80);
+				reply[0]=0x23;								
+				reply[1]=0x00;
+				reply[2]=0x1E;
+				reply[3]=0x84;
+				reply[4]=0x80;
+				size = uart_write_bytes(0, (const char *)reply, 5);
 				//number of probes (16)
-				printf( "%c", 0x40);
-				printf( "%c", 0x10);
+				reply[0]=0x40;								
+				reply[1]=0x10;
+				size = uart_write_bytes(0, (const char *)reply, 2);
 				//protocol version (2)
-				printf( "%c", 0x41);
-				printf( "%c", 0x02);
-				printf( "%c", 0x00);
+				reply[0]=0x41;								
+				reply[1]=0x02;
+				reply[2]=0x00;
+				size = uart_write_bytes(0, (const char *)reply, 3);
+				uart_flush(0);
 				break;
 			case SUMP_XON:
 			case SUMP_XOFF:
