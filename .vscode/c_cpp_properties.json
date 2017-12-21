@@ -121,7 +121,21 @@
             "browse": {
                 "path": [
                     "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/include/*",
-                    "${workspaceRoot}"
+                    "${workspaceRoot}",
+                    "d:/msys2/home/Olof/esp/esp-idf/components",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/newlib/include/",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/driver/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/newlib/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/freertos/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/esp32/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/log/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/nvs_flash/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/heap/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/tcpip_adapter/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/soc/include",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/lwip/include/lwip",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/lwip/include/lwip/port",
+                    "d:/msys2/home/Olof/esp/esp-idf/components/soc/esp32/include"    
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
