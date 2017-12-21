@@ -12,15 +12,19 @@ Pins defined for logical input.
             15,
 ```
 
-The key to using the ESP32 with sigrok was using the WROVER kit. :-P
-Not the code in this repository... Accidental success. 
-I knew there was something strange when the code was working on the first try. It is thanks to the JTAG, chips on the WROVER. Starting pulseview with logging,  -l 5 it seems that the FTDI-LA drivers were used.
+The key to using the ESP32 with sigrok was using the WROVER-kit. :-P
+It was not the code in this repository... Accidental success. 
+I knew there was something strange when the code was working on the first try. It is thanks to the JTAG, chips on the WROVER-KIT board that data acquisition was working so well.
+
+When starting pulseview with logging,  -l 5 it seems that the FTDI-LA drivers were used.
+
 https://sigrok.org/gitweb/?p=libsigrok.git;a=tree;f=src/hardware/ftdi-la
-For me it solves the problem and allows sampling tp to 10Mhz but maybe the code will be fixed one day.
-I found that cutecom allowed sending single HEX bytes, this is useful for debugging the SUMP protocol.
+For me it solves the problem and allows sampling without a second ESP32 up to 10Mhz.
+
+I found that terminal program cutecom allowed sending single HEX bytes, this is useful for debugging the implementation of the SUMP protocol.
 
 
-In sigrok the following WROVER pins are mapped
+In sigrok the following WROVER-KIT pins are mapped like this.
 ```
 PIN13 = ADBUS0
 PIN12 = ADBUS1
