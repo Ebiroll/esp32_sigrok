@@ -102,3 +102,17 @@ https://github.com/tuxyme/metal-pi/blob/master/analyzer/main.c
 
 
 https://github.com/gillham/logic_analyzer/blob/master/logic_analyzer.ino
+
+#Rigol and SCPI
+
+Other than the SUMP protocol we could try to emulate this RIGOL osciloscope,
+https://www.batronix.com/shop/oscilloscopes/Rigol-VS5202D.html
+
+https://en.wikipedia.org/wiki/Standard_Commands_for_Programmable_Instruments
+
+https://github.com/cjameshuff/rigolutils
+
+http://literature.cdn.keysight.com/litweb/pdf/81180-91020.pdf
+
+https://grenville.wordpress.com/2015/01/04/a-clone-of-the-saleae-logic-8-channel-analyser/
+
