@@ -188,7 +188,8 @@ void app_main(void)
     nvs_flash_init();
     init_uart();
 
-    //gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+    gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
+    gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
 
 #if 0
     // RGB leds on wrover kit
@@ -205,8 +206,8 @@ void app_main(void)
 
 
     // esp_err_t rmt_write_items(rmt_channel_t channel, rmt_item32_t *rmt_item, int item_num, bool wait_tx_done)
-    send_remote_pulses();
-    rmt_write_items(config.channel, items, 1, 0);
+    //send_remote_pulses();
+    //rmt_write_items(config.channel, items, 1, 0);
     //xTaskCreatePinnedToCore(&remoteTask, "remote", 4096, NULL, 20, NULL, 0);
 
     // To look at test data for 

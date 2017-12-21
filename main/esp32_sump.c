@@ -55,7 +55,7 @@ static sump_config sconfig;
  */
 typedef struct {
     int timer_idx;
-    uint64_t timer_counter_value;
+    //uint64_t timer_counter_value;
 } timer_event_t;
 
 xQueueHandle timer_queue;
@@ -87,7 +87,7 @@ static void timer_example_evt_task(void *arg)
 
         /* Print the timer values passed by event */
         printf("------- EVENT TIME --------\n");
-        print_timer_counter(evt.timer_counter_value);
+        //print_timer_counter(evt.timer_counter_value);
 
         /* Print the timer values as visible by this task */
         printf("-------- TASK TIME --------\n");
@@ -97,6 +97,7 @@ static void timer_example_evt_task(void *arg)
     }
 }
 
+static int level=1;
 
 void IRAM_ATTR timer_group0_isr(void *para)
 {
@@ -125,6 +126,15 @@ void IRAM_ATTR timer_group0_isr(void *para)
     } else {
     }
 
+	
+	gpio_set_level(GPIO_NUM_14, level);
+	if (level==1) 
+	{
+		level=0;
+	} else {
+		level=1;
+	}
+
     /* After the alarm has been triggered
       we need enable it again, so it is triggered the next time */
     TIMERG0.hw_timer[timer_idx].config.alarm_en = TIMER_ALARM_EN;
@@ -148,7 +158,7 @@ static void example_tg0_timer_init(int timer_idx,  double timer_interval_sec)
     config.counter_en = TIMER_PAUSE;
     config.alarm_en = TIMER_ALARM_EN;
     config.intr_type = TIMER_INTR_LEVEL;
-    config.auto_reload = 1;  // No auto reload
+    config.auto_reload = 1;  // Auto reload
     timer_init(TIMER_GROUP_0, timer_idx, &config);
 
     /* Timer's counter will initially start from value below.
@@ -180,7 +190,7 @@ static void portc_init(void)
 	    gpio_num_t pins[] = {
 			// JTAG, on the wrover kit
             12,
-            13,
+            //13,
             //14,
             15,
 			// Other
@@ -261,7 +271,7 @@ static void tim_set_prescaler(void)
     config.counter_en = TIMER_PAUSE;
     config.alarm_en = TIMER_ALARM_EN;
     config.intr_type = TIMER_INTR_LEVEL;
-    config.auto_reload = 1;  // No auto reload
+    config.auto_reload = 1;  // Auto reload
     timer_init(TIMER_GROUP_0, timer_idx, &config);
 #if 0
 	HAL_TIM_Base_DeInit(&htim);
@@ -273,7 +283,7 @@ static void tim_set_prescaler(void)
 static void sump_init(void)
 {
     buffer=malloc(STATES_LEN*sizeof(uint16_t));
-    timer_queue = xQueueCreate(10, sizeof(timer_event_t));
+    timer_queue = xQueueCreate(1000, sizeof(timer_event_t));
 	portc_init();
 	tim_init();
 }
