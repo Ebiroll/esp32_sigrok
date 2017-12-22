@@ -108,6 +108,8 @@ https://github.com/gillham/logic_analyzer/blob/master/logic_analyzer.ino
 Other than the SUMP protocol we could try to emulate this RIGOL osciloscope,
 https://www.batronix.com/shop/oscilloscopes/Rigol-VS5202D.html
 
+https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
+
 https://en.wikipedia.org/wiki/Standard_Commands_for_Programmable_Instruments
 
 https://github.com/cjameshuff/rigolutils
