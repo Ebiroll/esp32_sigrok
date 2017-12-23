@@ -362,14 +362,113 @@ static scpi_result_t My_CoreTstQ(scpi_t * context) {
  */
 static scpi_result_t chan_disp_on(scpi_t * context) {
 
-    SCPI_ResultText(context, "on");
+    SCPI_ResultMnemonic(context, "on");
 
     return SCPI_RES_OK;
 }
 
 static scpi_result_t chan_disp_off(scpi_t * context) {
 
-    SCPI_ResultText(context, "off");
+    SCPI_ResultMnemonic(context, "off");
+    //SCPI_ResultBool(context, 0);
+
+    return SCPI_RES_OK;
+}
+/*
+24
+Example:
+:TIMebase:MODE
+
+MAIN 
+Set
+the main timebase
+:TIMebase:OFFSet
+
+1
+Set
+the timebase
+offset as
+1s
+:TIMebase:OFFSet?
+Query returns
+1.000e+00
+
+3.
+:
+TIMebase
+[:DELayed]:SCALe
+Command Format: 
+:TIMebase[:DELayed]:SCALe
+□
+<scale_val>
+Explanation:
+The command is to set 
+the time base scale in 
+“MAIN” or “DELAYE”
+mode
+.
+T
+he unit 
+is 
+“S/div”
+.
+W
+hen 
+the “
+D
+elayed” is “ON”, change the Delayed Timebase Scale will 
+change the 
+width of 
+window to amplify waveform
+.
+<scale_val>
+is 
+2ns 
+-
+50s
+when it is Normal mode
+500ms 
+-
+50s
+when it is Roll mode
+When “MAIN” is “ON”, omit [: DELayed]
+.
+Query Form
+at
+:
+:TIMebase[:DELayed]:SCALe?
+Returned Format:
+Query returns
+the set value of 
+< scale_val>
+in scientific numeric notation.
+Example:
+:TIMebase:MODE
+□
+DELayed 
+Set
+the 
+“
+MAIN
+‟
+timebase
+:TIMebase:SCALe
+□
+2
+Set
+the timebase scale as
+2s
+:TIMebase:SCALe?
+Query returns
+2.000e+00
+*/
+
+static scpi_result_t time_scale(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "2.000e+00");
+
+    //SCPI_ResultText(context, "2.000e+00");
+    //SCPI_ResultFloat(context, 2.0f);
     //SCPI_ResultBool(context, 0);
 
     return SCPI_RES_OK;
@@ -415,6 +514,30 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "CHAN15:DISP?", .callback = chan_disp_off,},
     { .pattern = "CHAN16:DISP?", .callback = chan_disp_off,},
 
+    { .pattern = "LA:DISP?", .callback = chan_disp_on,},
+    { .pattern = "DIG0:TURN?", .callback = chan_disp_on,},
+    { .pattern = "DIG1:TURN?", .callback = chan_disp_on,},
+    { .pattern = "DIG2:TURN?", .callback = chan_disp_on,},
+    { .pattern = "DIG3:TURN?", .callback = chan_disp_on,},
+    { .pattern = "DIG4:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG5:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG6:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG7:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG8:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG9:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG10:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG11:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG12:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG13:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG14:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG15:TURN?", .callback = chan_disp_off,},
+    { .pattern = "DIG16:TURN?", .callback = chan_disp_off,},
+
+    { .pattern = "TIM:SCAL?", .callback = time_scale,},
+
+
+
+// Not used!
     { .pattern = "D0:DISP?", .callback = chan_disp_on,},
     { .pattern = "D1:DISP?", .callback = chan_disp_on,},
     { .pattern = "D2:DISP?", .callback = chan_disp_on,},
