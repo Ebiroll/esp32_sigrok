@@ -36,6 +36,7 @@ SOFTWARE.
 #include <sys/time.h>
 #include "read_chars.h"
 #include "esp32_sump.h" 
+#include "scpi_server.h"
 
 #include <driver/rmt.h>
  
@@ -43,6 +44,9 @@ SOFTWARE.
 
 static const char *TAG = "uart";
 
+
+#define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
+#define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
 
 #define BUF_SIZE 512
 
@@ -188,6 +192,32 @@ void app_main(void)
     nvs_flash_init();
     init_uart();
 
+#if 1
+    tcpip_adapter_init();
+    ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
+    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
+    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
+    wifi_config_t sta_config = {
+        .sta = {
+            .ssid = EXAMPLE_WIFI_SSID,
+            .password = EXAMPLE_WIFI_PASS,
+            .bssid_set = false
+        }
+    };
+    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
+    ESP_ERROR_CHECK( esp_wifi_start() );
+    ESP_ERROR_CHECK( esp_wifi_connect() );
+
+    scpi_server_init();
+#endif
+
+    size_t free8start=heap_caps_get_free_size(MALLOC_CAP_8BIT);
+    size_t free32start=heap_caps_get_free_size(MALLOC_CAP_32BIT);
+    ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
+    printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
+
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
 
@@ -233,24 +263,6 @@ void app_main(void)
 
         //vTaskDelay(200 / portTICK_PERIOD_MS);
     }
-#endif
-#if 0
-    tcpip_adapter_init();
-    ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
-    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
-    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
-    wifi_config_t sta_config = {
-        .sta = {
-            .ssid = "access_point_name",
-            .password = "password",
-            .bssid_set = false
-        }
-    };
-    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
-    ESP_ERROR_CHECK( esp_wifi_start() );
-    ESP_ERROR_CHECK( esp_wifi_connect() );
 #endif
 
 

@@ -50,19 +50,46 @@
 #include "../main/scpi-def.h"
 
 
+/* a global output buffer to collect output data until it will be 'flushed' */
+#define SCPI_OUPUT_BUFFER_SIZE      (256)
+char SCPI_outputBuffer[SCPI_OUPUT_BUFFER_SIZE];
+unsigned int SCPI_outputBuffer_idx = 0;
+
+
 
 size_t SCPI_Write(scpi_t * context, const char * data, size_t len) {
+
+    if ((SCPI_outputBuffer_idx + len) > (SCPI_OUPUT_BUFFER_SIZE - 1)) {
+        len = (SCPI_OUPUT_BUFFER_SIZE - 1) - SCPI_outputBuffer_idx; /* limit length to left over space */
+        /* apparently there is no mechanism to cope with buffers that are too small */
+    }
+    memcpy(&SCPI_outputBuffer[SCPI_outputBuffer_idx], data, len);
+    SCPI_outputBuffer_idx += len;
+
+    SCPI_outputBuffer[SCPI_outputBuffer_idx] = '\0';
+    /* return fwrite(data, 1, len, stdout); */
+   return len;
+    /*
     (void) context;
 
     if (context->user_context != NULL) {
         int fd = *(int *) (context->user_context);
         return write(fd, data, len);
     }
+    */
     return 0;
 }
 
 scpi_result_t SCPI_Flush(scpi_t * context) {
-    (void) context;
+    //(void) context;
+    if (context->user_context != NULL) {
+        int fd = *(int *) (context->user_context);
+        SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
+        SCPI_outputBuffer_idx++;
+        int tmp=SCPI_outputBuffer_idx;
+        SCPI_outputBuffer_idx=0;
+        return write(fd,  SCPI_outputBuffer, tmp);
+    }
 
     return SCPI_RES_OK;
 }

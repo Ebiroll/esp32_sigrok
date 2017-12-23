@@ -91,6 +91,15 @@ static void uartWRITETask(void *inpar) {
 ```
 ![uart](uart.png)
 
+# Project status
+Trying to  add rigol emulation and emulate sending of analoge and digital waveforms
+
+In directory linux, you can build a test client, it listens to port 5555
+./test
+
+To try connect 
+ sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
+This will send *IDN? to the instrument
 
 # Some other SUMP implementations,
 
@@ -108,7 +117,12 @@ https://github.com/gillham/logic_analyzer/blob/master/logic_analyzer.ino
 Other than the SUMP protocol we could try to emulate this RIGOL osciloscope,
 https://www.batronix.com/shop/oscilloscopes/Rigol-VS5202D.html
 
+
 https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
+
+
+Data format,
+https://rigol.desk.com/customer/en/portal/articles/2269119-how-do-i-format-the-data-returned-from-a-ds1000e-d-series-scope-
 
 https://en.wikipedia.org/wiki/Standard_Commands_for_Programmable_Instruments
 

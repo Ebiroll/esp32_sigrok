@@ -52,8 +52,11 @@
 #include "lwip/api.h"
 
 
-#define DEVICE_PORT 5025
-#define CONTROL_PORT 5026
+#define DEVICE_PORT 5555
+#define CONTROL_PORT 5556
+
+
+
 
 #define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 2)
 
@@ -92,13 +95,30 @@ user_data_t user_data = {
     .evtQueue = 0,
 };
 
+/* a global output buffer to collect output data until it will be 'flushed' */
+#define SCPI_OUPUT_BUFFER_SIZE      (256)
+char SCPI_outputBuffer[SCPI_OUPUT_BUFFER_SIZE];
+unsigned int SCPI_outputBuffer_idx = 0;
+
+
 size_t SCPI_Write(scpi_t * context, const char * data, size_t len) {
+
+    if ((SCPI_outputBuffer_idx + len) > (SCPI_OUPUT_BUFFER_SIZE - 1)) {
+        len = (SCPI_OUPUT_BUFFER_SIZE - 1) - SCPI_outputBuffer_idx; /* limit length to left over space */
+        /* apparently there is no mechanism to cope with buffers that are too small */
+    }
+    memcpy(&SCPI_outputBuffer[SCPI_outputBuffer_idx], data, len);
+    SCPI_outputBuffer_idx += len;
+
+    SCPI_outputBuffer[SCPI_outputBuffer_idx] = '\0';
+ /*   
     if (context->user_context != NULL) {
         user_data_t * u = (user_data_t *) (context->user_context);
         if (u->io) {
             return (netconn_write(u->io, data, len, NETCONN_NOCOPY) == ERR_OK) ? len : 0;
         }
     }
+*/
     return 0;
 }
 
@@ -106,6 +126,13 @@ scpi_result_t SCPI_Flush(scpi_t * context) {
     if (context->user_context != NULL) {
         user_data_t * u = (user_data_t *) (context->user_context);
         if (u->io) {
+            SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
+            SCPI_outputBuffer_idx++;
+            SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0; 
+            SCPI_outputBuffer_idx++;
+            int tmp=SCPI_outputBuffer_idx;
+            SCPI_outputBuffer_idx=0;
+            netconn_write(u->io, SCPI_outputBuffer, tmp, NETCONN_NOCOPY); 
             /* flush not implemented */
             return SCPI_RES_OK;
         }
@@ -191,6 +218,7 @@ void scpi_netconn_callback(struct netconn * conn, enum netconn_evt evt, u16_t le
     queue_event_t msg;
     (void) len;
 
+    //printf("scpi_netconn_callback\n");
 
     if (evt == NETCONN_EVT_RCVPLUS) {
         msg.cmd = SCPI_MSG_TEST;
@@ -210,6 +238,8 @@ void scpi_netconn_callback(struct netconn * conn, enum netconn_evt evt, u16_t le
 static struct netconn * createServer(int port) {
     struct netconn * conn;
     err_t err;
+
+    //iprintf("creating server: %d\n",port);
 
     conn = netconn_new_with_callback(NETCONN_TCP, scpi_netconn_callback);
     if (conn == NULL) {
@@ -411,5 +441,6 @@ static void scpi_server_thread(void *arg) {
 }
 
 void scpi_server_init(void) {
-    sys_thread_new("SCPI", scpi_server_thread, NULL, 2 * DEFAULT_THREAD_STACKSIZE, SCPI_THREAD_PRIO);
+    //printf("Server thread\n");
+    sys_thread_new("SCPI", scpi_server_thread, NULL, 4 * DEFAULT_THREAD_STACKSIZE, SCPI_THREAD_PRIO);
 }

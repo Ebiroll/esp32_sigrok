@@ -6,6 +6,10 @@
         "parser.hpp": "c",
         "zlib.h": "c",
         "freertosconfig.h": "c",
-        "sdkconfig.h": "c"
+        "sdkconfig.h": "c",
+        "system_error": "c",
+        "*.ipp": "c",
+        "*.tcc": "c",
+        "string_view": "c"
     }
 }

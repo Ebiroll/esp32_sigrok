@@ -352,6 +352,31 @@ static scpi_result_t My_CoreTstQ(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+/**
+ * OLAS test
+ *
+ * Result should be 0 if everything is ok
+ * Result should be 1 if something goes wrong
+ *
+ * Return SCPI_RES_OK
+ */
+static scpi_result_t chan_disp_on(scpi_t * context) {
+
+    SCPI_ResultText(context, "on");
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t chan_disp_off(scpi_t * context) {
+
+    SCPI_ResultText(context, "off");
+    //SCPI_ResultBool(context, 0);
+
+    return SCPI_RES_OK;
+}
+
+
+
 const scpi_command_t scpi_commands[] = {
     /* IEEE Mandated Commands (SCPI std V1999.0 4.1.1) */
     { .pattern = "*CLS", .callback = SCPI_CoreCls,},
@@ -372,6 +397,42 @@ const scpi_command_t scpi_commands[] = {
     {.pattern = "SYSTem:ERRor[:NEXT]?", .callback = SCPI_SystemErrorNextQ,},
     {.pattern = "SYSTem:ERRor:COUNt?", .callback = SCPI_SystemErrorCountQ,},
     {.pattern = "SYSTem:VERSion?", .callback = SCPI_SystemVersionQ,},
+
+    { .pattern = "CHAN1:DISP?", .callback = chan_disp_on,},
+    { .pattern = "CHAN2:DISP?", .callback = chan_disp_on,},
+    { .pattern = "CHAN3:DISP?", .callback = chan_disp_on,},
+    { .pattern = "CHAN4:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN5:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN6:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN7:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN8:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN9:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN10:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN11:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN12:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN13:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN14:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN15:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN16:DISP?", .callback = chan_disp_off,},
+
+    { .pattern = "D0:DISP?", .callback = chan_disp_on,},
+    { .pattern = "D1:DISP?", .callback = chan_disp_on,},
+    { .pattern = "D2:DISP?", .callback = chan_disp_on,},
+    { .pattern = "D3:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D4:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D5:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D6:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D7:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D8:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D9:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D10:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D11:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D12:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D13:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D14:DISP?", .callback = chan_disp_off,},
+    { .pattern = "D15:DISP?", .callback = chan_disp_off,},
+
+    
 
     /* {.pattern = "STATus:OPERation?", .callback = scpi_stub_callback,}, */
     /* {.pattern = "STATus:OPERation:EVENt?", .callback = scpi_stub_callback,}, */

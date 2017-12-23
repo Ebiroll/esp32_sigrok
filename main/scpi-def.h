@@ -6,11 +6,13 @@
 #define SCPI_INPUT_BUFFER_LENGTH 256
 #define SCPI_ERROR_QUEUE_SIZE 17
 
-#define SCPI_IDN1 "Rigol Technologies"
-#define SCPI_IDN2 "VS5000"
-#define SCPI_IDN3 "VS5022D"
-#define SCPI_IDN4 "00.02.04"
-
+#define SCPI_IDN1 "RIGOL TECHNOLOGIES"
+//#define   SCPI_IDN1 "RIGOL TECHNOLOGIES,DS1102E,DS1EB104702974,00.02.05.01.00"
+//# firmware < 0.2.4, using raw data format.
+#define SCPI_IDN2 "VS5022D"     
+#define SCPI_IDN3 "VS50234567"
+#define SCPI_IDN4 "00.02.03.03.00"
+// 00.02.04
 
 extern const scpi_command_t scpi_commands[];
 extern scpi_interface_t scpi_interface;

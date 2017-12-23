@@ -33,3 +33,6 @@ build
 *.dSYM/
 *.su
 build
+sdkconfig
+scopecmd/scopecmd
+linux/test
