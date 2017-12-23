@@ -97,7 +97,8 @@ static size_t writeNewLine(scpi_t * context) {
 #ifndef SCPI_LINE_ENDING
 #error no termination character defined
 #endif
-        len = writeData(context, SCPI_LINE_ENDING, strlen(SCPI_LINE_ENDING));
+        // We add this at flush instead
+        //len = writeData(context, SCPI_LINE_ENDING, strlen(SCPI_LINE_ENDING));
         flushData(context);
         return len;
     } else {

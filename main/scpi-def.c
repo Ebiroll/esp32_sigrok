@@ -379,85 +379,55 @@ static scpi_result_t chan_disp_off(scpi_t * context) {
 Example:
 :TIMebase:MODE
 
-MAIN 
-Set
+MAIN vSet
 the main timebase
 :TIMebase:OFFSet
 
-1
-Set
-the timebase
-offset as
-1s
-:TIMebase:OFFSet?
+1vSet the timebase offset as 1s
+:TIMebase:OFFSet? 
 Query returns
 1.000e+00
 
 3.
 :
-TIMebase
-[:DELayed]:SCALe
+TIMebase [:DELayed]:SCALe
 Command Format: 
 :TIMebase[:DELayed]:SCALe
-□
+ 
 <scale_val>
-Explanation:
 The command is to set 
 the time base scale in 
-“MAIN” or “DELAYE”
-mode
+“MAIN” or “DELAYE” mode
 .
-T
-he unit 
-is 
-“S/div”
+The unit  is  “S/div”
 .
-W
-hen 
-the “
-D
-elayed” is “ON”, change the Delayed Timebase Scale will 
-change the 
-width of 
-window to amplify waveform
+When the “Delayed” is “ON”, change the Delayed Timebase Scale will 
+change the width of window to amplify waveform
 .
-<scale_val>
-is 
-2ns 
--
-50s
+<scale_val>is  2ns - 50s
 when it is Normal mode
-500ms 
--
-50s
-when it is Roll mode
+500ms -50s when it is Roll mode
+
 When “MAIN” is “ON”, omit [: DELayed]
 .
-Query Form
-at
+Query Format
 :
 :TIMebase[:DELayed]:SCALe?
 Returned Format:
 Query returns
-the set value of 
-< scale_val>
+the set value of < scale_val>
 in scientific numeric notation.
+
 Example:
 :TIMebase:MODE
-□
+
 DELayed 
-Set
-the 
-“
-MAIN
-‟
-timebase
+Set the 
+“MAIN‟ timebase
 :TIMebase:SCALe
-□
+
 2
-Set
-the timebase scale as
-2s
+Set the timebase scale as 2s
 :TIMebase:SCALe?
 Query returns
 2.000e+00
@@ -465,13 +435,239 @@ Query returns
 
 static scpi_result_t time_scale(scpi_t * context) {
 
-    SCPI_ResultMnemonic(context, "2.000e+00");
+    SCPI_ResultFloat(context, 2.0f);
 
     //SCPI_ResultText(context, "2.000e+00");
     //SCPI_ResultFloat(context, 2.0f);
     //SCPI_ResultBool(context, 0);
 
     return SCPI_RES_OK;
+}
+
+static scpi_result_t chan1_probe(scpi_t * context) {
+
+/*
+Explanation:
+The  command  is  to  set  the  attenuation  factor  of  the  probe
+ 
+1X,  10X,  100X , or 1000X
+to keep the  Measurement exact
+The options of <n>
+are 1 or 2.
+*/
+    SCPI_ResultFloat(context, 2.0f);
+
+    //SCPI_ResultText(context, "2.000e+00");
+    //SCPI_ResultFloat(context, 2.0f);
+    //SCPI_ResultBool(context, 0);
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t chan1_scal(scpi_t * context) {
+
+/*
+he command is to set the vertical range of the amplified waveform.
+<range> is  
+2mV~ 10V       Probe 1X   
+20mV~100V      Probe 10X   
+200mV~ 1000V   Probe 100X  
+2V~10000V      Probe 1000X 
+*/
+    SCPI_ResultFloat(context, 4.0f);
+
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t chan1_offset(scpi_t * context) {
+
+/*
+The command is to set the vertical
+offset of the waveform
+. 
+When scale >100mV
+, the range of  <Offset>
+is -40V~ +40V
+When Scale <=100mV
+the range of <Offset>
+is -2V ~ +2V
+*/
+    SCPI_ResultFloat(context, 0.0f);
+
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t chan1_coup(scpi_t * context) {
+
+/*
+Returned Format:
+Query returns “DC”,“AC” or “GND”. 
+The double quotes are not returned.
+*/
+    SCPI_ResultMnemonic(context, "DC");
+
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t trig_edge_source(scpi_t * context) {
+
+/*
+Query 
+returns “CH1”, “CH2”, “EXT”, 
+“EXT5”or “DIGITAL”
+*/
+    SCPI_ResultMnemonic(context, "CH1");
+
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t tim_offset(scpi_t * context) {
+
+/*
+The command is to adjust 
+the timebase offset in 
+“MAIN” or
+“Delayed”
+mode.
+<offset>
+is 
+1s ~ momery terminal
+when it is Normal
+mode
+-
+500s ~ +500s
+when it is Stop
+mode
+-
+6*
+S
+cale ~ +6*Scale
+when  it  is  Roll  mode
+(
+“Scale”
+indicates 
+the current 
+horizontal
+scale
+. 
+T
+he default 
+unit is s/div
+)
+When it i
+s “MAIN”
+, 
+omit [:DELayed]
+.
+Query Format
+:
+:TIMebase[:DELayed]:OFFSet?
+*/
+    SCPI_ResultFloat(context, 0.0);
+
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t trig_edge_slope(scpi_t * context) {
+
+/* Query 
+r
+eturns “POSITIVE”
+or 
+“NEGATIVE”
+. */
+     SCPI_ResultMnemonic(context, "POSITIVE");
+
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t trig_edge_level(scpi_t * context) {
+  
+  /*   Edge  trigger level  */
+
+   SCPI_ResultFloat(context, 2.0);
+
+   return SCPI_RES_OK;
+}
+
+int times_called=0;
+
+
+static scpi_result_t run_to_the_hills(scpi_t * context) {
+  /*
+  The  command  initiates
+the  oscilloscope  to  acquire waveform  data  according  to  its 
+current settings. Acquisition runs continuously until the oscilloscope receives a :STOP 
+command,  or  a  single  acquisition  has  occurred  when  the  Trigger 
+mode is  set  to  “Single”.
+*/
+times_called=0;
+}
+
+static scpi_result_t stop_acquisition(scpi_t * context) {
+/*
+The  command  controls  the  oscilloscope  to  stop  acquiring  data.  To  restart  the 
+acquisition, use the :RUN command
+*/
+}
+
+
+static scpi_result_t trig_status(scpi_t * context) {
+
+/*
+* Trigger status may return:
+* "TD" or "T'D" - triggered
+* "AUTO"        - autotriggered
+* "RUN"         - running
+* "WAIT"        - waiting for trigger
+* "STOP"        - stopped
+
+*/
+
+times_called++;
+
+if (times_called>1000) {
+  SCPI_ResultMnemonic(context, "STOP");
+} else if (times_called>100) {
+  SCPI_ResultMnemonic(context, "RUN");
+} else if (times_called>10) {
+ SCPI_ResultMnemonic(context, "TD");
+} else {
+ SCPI_ResultMnemonic(context, "WAIT");    
+}
+
+}
+
+float sample_data[2048];
+
+static scpi_result_t wav_data(scpi_t * context) {
+    const char * data;
+    size_t len;
+
+    printf("wav_data ");
+
+    if (SCPI_ParamArbitraryBlock(context, &data, &len, FALSE)) {
+        // 
+        //SCPI_ResultArbitraryBlock(context, data, len);
+           printf("%s\n",data);
+    }
+
+    for (int i=0;i<2048;i++) {
+        sample_data[i]=2.0*i/2048;
+        SCPI_ResultFloat(context, sample_data[i]);
+    }
+
+   //SCPI_ResultArbitraryBlock(context,sample_data,2048);
+
 }
 
 
@@ -498,8 +694,8 @@ const scpi_command_t scpi_commands[] = {
     {.pattern = "SYSTem:VERSion?", .callback = SCPI_SystemVersionQ,},
 
     { .pattern = "CHAN1:DISP?", .callback = chan_disp_on,},
-    { .pattern = "CHAN2:DISP?", .callback = chan_disp_on,},
-    { .pattern = "CHAN3:DISP?", .callback = chan_disp_on,},
+    { .pattern = "CHAN2:DISP?", .callback = chan_disp_off,},
+    { .pattern = "CHAN3:DISP?", .callback = chan_disp_off,},
     { .pattern = "CHAN4:DISP?", .callback = chan_disp_off,},
     { .pattern = "CHAN5:DISP?", .callback = chan_disp_off,},
     { .pattern = "CHAN6:DISP?", .callback = chan_disp_off,},
@@ -534,7 +730,41 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "DIG16:TURN?", .callback = chan_disp_off,},
 
     { .pattern = "TIM:SCAL?", .callback = time_scale,},
+    { .pattern = ":CHAN1:PROB?", .callback = chan1_probe,},
+    { .pattern = ":CHAN2:PROB?", .callback = chan1_probe,},
+    { .pattern = ":CHAN1:SCAL?", .callback = chan1_scal,},
+    { .pattern = ":CHAN2:SCAL?", .callback = chan1_scal,},
 
+    { .pattern = "CHAN1:OFFS?", .callback = chan1_offset,},
+    { .pattern = "CHAN2:OFFS?", .callback = chan1_offset,},
+
+    { .pattern = "CHAN1:COUP?", .callback = chan1_coup,},
+    { .pattern = "CHAN2:COUP?", .callback = chan1_coup,},
+
+    { .pattern = "TRIG:EDGE:SOUR?", .callback = trig_edge_source,},
+    { .pattern = "TIM:OFFS?", .callback = tim_offset,},
+    { .pattern = "TRIG:EDGE:SLOP?", .callback = trig_edge_slope,},
+    { .pattern = "TRIG:EDGE:LEV?", .callback = trig_edge_level,},
+    
+    { .pattern = "RUN", .callback = run_to_the_hills,},
+    { .pattern = "STOP", .callback = stop_acquisition,},
+    { .pattern = "TRIG:STAT?", .callback = trig_status,},
+
+    
+
+//sr: [00:53.341407] scpi_tcp: Successfully sent SCPI command: ':RUN'.
+// Operation comlete...?
+//sr: [00:53.341493] scpi_tcp: Successfully sent SCPI command: '*OPC?'.
+//sr: [00:53.384473] scpi: Got response: '1', length 1.
+//sr: [00:53.384551] std: rigol-ds: Starting acquisition.
+//sr: [00:53.384580] std: rigol-ds: Sending SR_DF_HEADER packet.
+//sr: [00:53.384602] session: bus: Received SR_DF_HEADER packet.
+//sr: [00:53.384666] hwdriver: sr_config_get(): key 30000 (samplerate) sdi 0x55e5a66914b0 cg NULL -> uint64 73
+//sr: [00:53.384694] rigol-ds: Starting data capture for frameset 1 of 1
+//sr: [00:53.384711] session: bus: Received SR_DF_FRAME_BEGIN packet.
+//sr: [00:53.435286] scpi_tcp: Successfully sent SCPI command: ':TRIG:STAT?'.
+
+    {.pattern = " WAV:DATA? CHAN1", .callback = wav_data,},
 
 
 // Not used!
@@ -556,7 +786,6 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "D15:DISP?", .callback = chan_disp_off,},
 
     
-
     /* {.pattern = "STATus:OPERation?", .callback = scpi_stub_callback,}, */
     /* {.pattern = "STATus:OPERation:EVENt?", .callback = scpi_stub_callback,}, */
     /* {.pattern = "STATus:OPERation:CONDition?", .callback = scpi_stub_callback,}, */
@@ -590,6 +819,9 @@ const scpi_command_t scpi_commands[] = {
     {.pattern = "TEST:TEXT", .callback = TEST_Text,},
     {.pattern = "TEST:ARBitrary?", .callback = TEST_ArbQ,},
     {.pattern = "TEST:CHANnellist", .callback = TEST_Chanlst,},
+
+
+   
 
     SCPI_CMD_LIST_END
 };

@@ -92,7 +92,7 @@ static void uartWRITETask(void *inpar) {
 ![uart](uart.png)
 
 # Project status
-Trying to  add rigol emulation and emulate sending of analoge and digital waveforms
+Trying to  add rigol emulation and emulate sending of analouge and digital waveforms
 
 In directory linux, you can build a test client, it listens to port 5555
 ./test
@@ -100,6 +100,20 @@ In directory linux, you can build a test client, it listens to port 5555
 To try connect 
  sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
 This will send *IDN? to the instrument
+
+
+https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
+
+```
+To build a debuggable version of sigrok-cli use the CMakeLists.txt file
+ mkdir sigrok;cd sigrok;
+ git clone git://sigrok.org/libsigrokcxx.git
+ // Not this?? git clone git://sigrok.org/libsigrok.git
+ git clone git://sigrok.org/sigrok-cli
+ cp CMakeLists.txt .
+ mkdir build;cd build; cmake ..
+ ./olas-cli -d rigol-ds:conn=tcp-raw/192.168.1.127/5555  -l 5  --show
+```
 
 # Some other SUMP implementations,
 
