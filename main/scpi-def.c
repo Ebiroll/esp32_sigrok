@@ -611,6 +611,7 @@ command,  or  a  single  acquisition  has  occurred  when  the  Trigger
 mode is  set  to  “Single”.
 */
 times_called=0;
+return SCPI_RES_OK;
 }
 
 static scpi_result_t stop_acquisition(scpi_t * context) {
@@ -618,6 +619,7 @@ static scpi_result_t stop_acquisition(scpi_t * context) {
 The  command  controls  the  oscilloscope  to  stop  acquiring  data.  To  restart  the 
 acquisition, use the :RUN command
 */
+return SCPI_RES_OK;
 }
 
 
@@ -645,6 +647,7 @@ if (times_called>1000) {
  SCPI_ResultMnemonic(context, "WAIT");    
 }
 
+return SCPI_RES_OK;
 }
 
 float sample_data[2048];
@@ -667,7 +670,7 @@ static scpi_result_t wav_data(scpi_t * context) {
     }
 
    //SCPI_ResultArbitraryBlock(context,sample_data,2048);
-
+   return SCPI_RES_OK;
 }
 
 
