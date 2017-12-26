@@ -36,3 +36,12 @@ build
 sdkconfig
 scopecmd/scopecmd
 linux/test
+sdkconfig.old
+sdkconfig.sav
+hardcopy.0
+screenlog.0
+capture/OscScreenGrabLAN.py.log
+capture/Rigol_functions.pyc
+capture/telnetlib_receive_all.pyc
+capture/captures
+data

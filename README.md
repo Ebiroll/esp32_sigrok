@@ -115,6 +115,41 @@ To build a debuggable version of sigrok-cli use the CMakeLists.txt file
  ./olas-cli -d rigol-ds:conn=tcp-raw/192.168.1.127/5555  -l 5  --show
 ```
 
+To test 
+./olas-cli -d ols:conn=/dev/ttyUSB1 -l 5  -c samplerate=1khz --samples 10
+
+```
+Currently pulseview exits with Caught exception: not applicable
+sr: [00:31.316006] ols: Sending cmd 0x00.
+... Initial 5 zeroes sent
+
+sr: [00:31.316006] ols: Sending cmd 0x00.
+sr: [00:31.316397] serial: Wrote 1/1 bytes.
+sr: [00:31.316435] serial: Draining serial port /dev/ttyUSB1.
+sr: [00:31.316755] ols: Sending cmd 0x02.
+sr: [00:31.317130] serial: Wrote 1/1 bytes.
+sr: [00:31.317175] serial: Draining serial port /dev/ttyUSB1.
+sr: [00:31.328107] serial: Read 4/4 bytes.
+sr: [00:31.328149] ols: Sending cmd 0x04.
+sr: [00:31.328596] serial: Wrote 1/1 bytes.
+sr: [00:31.328661] serial: Draining serial port /dev/ttyUSB1.
+sr: [00:31.339184] ols: Device does not support metadata.
+sr: [00:31.339332] ols: Disabling demux mode.
+sr: [00:31.339358] serial: Closing serial port /dev/ttyUSB1.
+sr: [00:31.340761] hwdriver: Scan of 'ols' found 1 devices.
+sr: [00:33.353208] serial: Opening serial port '/dev/ttyUSB1' (flags 1).
+sr: [00:33.358160] serial: Parsing parameters from "115200/8n1".
+sr: [00:33.358301] serial: Setting serial parameters on port /dev/ttyUSB1.
+sr: [00:33.361693] hwdriver: sr_config_list(): key 30002 (pattern) sdi 0x564e0bfc70f0 cg NULL -> ['None', 'External', 'Internal']
+sr: [00:33.361750] hwdriver: sr_config_get(): key 30003 (rle) sdi 0x564e0bfc70f0 cg NULL -> false
+sr: [00:33.361792] hwdriver: sr_config_get(): key 30002 (pattern) sdi 0x564e0bfc70f0 cg NULL -> 'None'
+sr: [00:33.361869] hwdriver: sr_config_get(): key 30001 (captureratio) sdi 0x564e0bfc70f0 cg NULL -> uint64 0
+Caught exception: not applicable
+sr: [00:33.376098] serial: Closing serial port /dev/ttyUSB1.
+srd: Exiting libsigrokdecode.
+```
+
+
 # Some other SUMP implementations,
 
 https://github.com/hydrabus/hydrafw/wiki/HydraFW-SUMP-guide

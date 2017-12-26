@@ -36,7 +36,7 @@
 // Timer variables to use for 
 #define TIMER_DIVIDER         2  //  Hardware timer clock divider
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
-#define TIMER_INTERVAL0_SEC   (0.001) // sample test interval for the first timer 1kHz
+#define TIMER_INTERVAL0_SEC   (0.1) // sample test interval for the first timer 1Hz
 
 #define TIMER_GROUP  0
 #define TIMER_IDX    TIMER_0
@@ -127,7 +127,7 @@ void IRAM_ATTR timer_group0_isr(void *para)
     }
 
 	
-	gpio_set_level(GPIO_NUM_14, level);
+	gpio_set_level(GPIO_NUM_4, level);
 	if (level==1) 
 	{
 		level=0;
@@ -280,7 +280,7 @@ static void tim_set_prescaler(void)
 #endif
 }
 
-static void sump_init(void)
+void sump_init(void)
 {
     buffer=malloc(STATES_LEN*sizeof(uint16_t));
     timer_queue = xQueueCreate(1000, sizeof(timer_event_t));
@@ -369,26 +369,78 @@ static void sump_deinit(void)
 	}
 }
 
-int cmd_sump()
-{
-	printf( "Interrupt by pressing boot.\r\n");
-	printf( "\r\n");
-
-	sump();
-
-	return 1;
-}
 
 char reply[10];
 
+size_t uart_read_timeout(sump_context_t * context, const char * data,unsigned int len, size_t timeout)
+{
+	size_t size;
+	int num_read=0;
+	unsigned char *ptr = data;
+	//printf("+");
 
-void sump()
+	{
+	    size = uart_read_bytes(0, (unsigned char *)ptr, 1, timeout); // portMAX_DELAY);
+		//printf("%c\n",*ptr);
+		if (size == 1) {
+			num_read++;
+			ptr++;
+			return num_read;
+		} else {
+			//printf(".");
+            return num_read;
+		}						
+		// End of read a character
+	} // End of loop
+	return num_read;
+};
+
+int uart_read_chars (sump_context_t * context,  char * data,unsigned int len)
+{
+	int size;
+	int ret=len;
+	unsigned char *ptr = (unsigned char *)data;
+	while(len>0) {
+		size = uart_read_bytes(context->uart_portno, ptr, 1, portMAX_DELAY);
+		if (size == 1) {
+			len--;
+			ptr++;
+		} // End of read a character
+	} // End of loop
+	return (ret);
+};
+
+int uart_write (sump_context_t * context, const char * data, size_t len)
+{
+	int  num_written= uart_write_bytes(context->uart_portno, data ,len);
+	return num_written;
+};
+
+int uart_error_callback(sump_context_t * context, int_fast16_t error) {
+	// Nothing here yet!!
+	return 0;
+};
+
+int uart_sump_flush(sump_context_t * context) {
+  uart_flush(context->uart_portno);
+  return 0;
+}
+
+sump_interface_t uart_interface = {
+    .error = uart_error_callback,
+    .write = uart_write,
+	.read_timeout=uart_read_timeout,
+	.read_chars=uart_read_chars,
+	.flush=uart_sump_flush,
+};
+
+void sump(sump_context_t *context,sump_interface_t *io)
 {
 
-	sump_init();
+	//sump_init();
 	sconfig.state = SUMP_STATE_IDLE;
 
-	uint8_t sump_command;
+	char  sump_command;
 	uint8_t sump_parameters[4] = {0};
 	uint32_t index=0;
 	int size;
@@ -398,7 +450,7 @@ void sump()
 	
 	// !(gpio_get_level(0)==0)
 	while (true) {
-		if(char_read_timeout( &sump_command, 1, 500/portTICK_PERIOD_MS)) {
+		if(io->read_timeout(context, &sump_command, 1, 500/portTICK_PERIOD_MS)) {
 		  	gpio_set_level(GPIO_NUM_2, level);
 			if (level==1) 
 			{
@@ -414,8 +466,8 @@ void sump()
 				reply[1]='A';
 				reply[2]='L';
 				reply[3]='S';
-			    size = uart_write_bytes(0, (const char *)reply, 4);
-				uart_flush(0);
+			    size = io->write(context, (const char *)reply, 4);
+				io->flush(context);
 
 				//printf( "1ALS");
 				break;
@@ -455,8 +507,8 @@ void sump()
 						break;
 					}
 					//printf("%s",reply);
-					size = uart_write_bytes(0, (const char *)reply, 4);
-					uart_flush(0);
+					size = io->write(context, (const char *)reply, 4);
+					io->flush(context);
 					sconfig.read_count--;
 				}
 				break;
@@ -470,7 +522,7 @@ void sump()
 				reply[4]='3';
 				reply[5]='2';
 				reply[6]=0x0;
-				size = uart_write_bytes(0, (const char *)reply, 7);
+				size = io->write(context, (const char *)reply, 7);
 				//sprintf( reply,);
 				//printf( "%c", 0x00);
 				//sample memory (8192)
@@ -479,24 +531,24 @@ void sump()
 				reply[2]=0x00;
 				reply[3]=0x20;
 				reply[4]=0x00;
-				size = uart_write_bytes(0, (const char *)reply, 5);
+				size = io->write(context, (const char *)reply, 5);
 				//sample rate (2MHz)
 				reply[0]=0x23;								
 				reply[1]=0x00;
 				reply[2]=0x1E;
 				reply[3]=0x84;
 				reply[4]=0x80;
-				size = uart_write_bytes(0, (const char *)reply, 5);
+				size = io->write(context, (const char *)reply, 5);
 				//number of probes (16)
 				reply[0]=0x40;								
 				reply[1]=0x10;
-				size = uart_write_bytes(0, (const char *)reply, 2);
+				size = io->write(context, (const char *)reply, 2);
 				//protocol version (2)
 				reply[0]=0x41;								
 				reply[1]=0x02;
 				reply[2]=0x00;
-				size = uart_write_bytes(0, (const char *)reply, 3);
-				uart_flush(0);
+				size = io->write(context, (const char *)reply, 3);
+				io->flush(context);
 				break;
 			case SUMP_XON:
 			case SUMP_XOFF:
@@ -504,7 +556,7 @@ void sump()
 				break;
 			default:
 				// Other commands take 4 bytes as parameters
-				if(char_read( sump_parameters, 4) == 4) {
+				if(io->read_chars(context, (char *)sump_parameters, 4) == 4) {
 					switch(sump_command) {
 					case SUMP_TRIG_1:
 					case SUMP_TRIG_2:
@@ -554,7 +606,8 @@ void sump()
 						sconfig.divider /= 50; /* Assuming 100MHz base frequency */
 						sconfig.divider++;
 						//  the sampling frequency is set to f = clock / (x + 1)
-						tim_set_prescaler();
+						// Dont do this yet
+						//tim_set_prescaler();
 						break;
 					case SUMP_FLAGS:
 						sconfig.channels = (~sump_parameters[0] >> 2) & 0x0f;
@@ -572,3 +625,14 @@ void sump()
 	sump_deinit();
 }
 
+
+
+void sump_uart() {
+  sump_context_t context;
+  context.uart_portno=0;
+  sump(&context,&uart_interface);
+}
+
+void sump_network() {
+
+}

@@ -1,7 +1,9 @@
 /*
  * HydraBus/HydraNFC
+ *  ESP32 sigrok 
  *
  * Copyright (C) 2015 Nicolas OBERLI
+ *               2017 Olof Astrand
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "lwip/tcpip.h"
+#include "freertos/FreeRTOS.h"
+//#include "task.h"
+//#include "esp_system.h"
+//#include "lwip/tcp.h"
+//#include "lwip/inet.h"
+#include "lwip/sockets.h"
+#include "lwip/api.h"
+
 
 #define SUMP_RESET	0x00
 #define SUMP_RUN	0x01
@@ -49,4 +60,30 @@ typedef struct {
 	uint8_t channels;
 } sump_config;
 
-void sump();
+typedef struct _sump_t {
+	int            uart_portno;
+	struct netconn *io;
+	xQueueHandle   evtQueue;
+} sump_context_t;
+
+
+typedef int(*sump_read_timeout_t)(sump_context_t * context, char * data,unsigned int len, size_t timeout);
+typedef int(*sump_read_chars_t)(sump_context_t * context, char * data,unsigned int len);
+typedef int(*sump_write_t)(sump_context_t * context, const char * data, size_t len);
+typedef int (*sump_error_callback_t)(sump_context_t * context, int_fast16_t error);
+typedef int (*sump_flush_t)(sump_context_t * context);
+
+
+struct _sump_interface_t {
+        sump_error_callback_t 	error;
+        sump_write_t 			write;
+		sump_read_timeout_t  	read_timeout;
+		sump_read_chars_t		read_chars;
+		sump_flush_t            flush;
+    };
+
+typedef struct _sump_interface_t sump_interface_t;
+
+void sump_init();
+void sump_uart();
+void sump_network();

@@ -126,14 +126,13 @@ scpi_result_t SCPI_Flush(scpi_t * context) {
     if (context->user_context != NULL) {
         user_data_t * u = (user_data_t *) (context->user_context);
         if (u->io) {
-            //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
-            //SCPI_outputBuffer_idx++;
-            SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0; 
+            SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
             SCPI_outputBuffer_idx++;
+            //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0; 
+            //SCPI_outputBuffer_idx++;
             int tmp=SCPI_outputBuffer_idx;
             SCPI_outputBuffer_idx=0;
             netconn_write(u->io, SCPI_outputBuffer, tmp, NETCONN_NOCOPY); 
-            /* flush not implemented */
             return SCPI_RES_OK;
         }
     }

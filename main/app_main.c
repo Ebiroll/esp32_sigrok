@@ -52,7 +52,7 @@ static const char *TAG = "uart";
 
 char echoLine[BUF_SIZE];
 
-
+#if 0
 static void init_uart_1()
 {
   uart_port_t uart_num = UART_NUM_1;                                     //uart port number
@@ -87,6 +87,7 @@ static void uartWRITETask(void *inpar) {
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
+#endif
 
 static void init_uart()
 {
@@ -113,7 +114,6 @@ static void init_uart()
 
 // This task only prints what is received on UART1
 static void uartECHOTask(void *inpar) {
-  char* data;
   uart_port_t uart_num = UART_NUM_0;                                     //uart port number
 
   printf("ESP32 uart echo\n");
@@ -135,7 +135,8 @@ static void uartECHOTask(void *inpar) {
      //printf("%c",echoLine[0]);
      uart_flush(0);
   }
-  sump();
+  //sump_init();
+  //sump_uart();
 }
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -221,6 +222,9 @@ void app_main(void)
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
 
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);	    
+    gpio_set_level(GPIO_NUM_4, 0);
+
 #if 0
     // RGB leds on wrover kit
         gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
@@ -244,7 +248,8 @@ void app_main(void)
     //init_uart_1();
     //xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 1);
 
-    sump();
+    sump_init();
+    sump_uart();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
 #if 0
