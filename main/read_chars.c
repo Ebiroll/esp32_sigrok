@@ -47,7 +47,7 @@ char *pollLine(uart_port_t uart,char *line,int len) {
 	while(1) {
 		if (ESP_REG(RX_STATUS)>0) {
 			*ptr=(ESP_REG(FIFO) & 0x000000ff);
-			printf("GOT:%c\n",(char)*ptr);
+			//printf("GOT:%c\n",(char)*ptr);
 			if (*ptr == '\n') {
 				*ptr = 0;
 				return line;

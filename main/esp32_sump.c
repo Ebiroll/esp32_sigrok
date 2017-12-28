@@ -33,13 +33,9 @@
 
 #define STATES_LEN 8192
 
-// Timer variables to use for 
-#define TIMER_DIVIDER         2  //  Hardware timer clock divider
-#define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
-#define TIMER_INTERVAL0_SEC   (0.1) // sample test interval for the first timer 1Hz
+const char *tim_name="samp_tim";
+esp_timer_handle_t   sample_timer;
 
-#define TIMER_GROUP  0
-#define TIMER_IDX    TIMER_0
 
 //static uint16_t *buffer = (uint16_t *)g_sbuf;
 static uint16_t *buffer;
@@ -50,141 +46,35 @@ static sump_config sconfig;
 // Event interrupt handling to get a steady flow of samples
 
 /*
- * A sample structure to pass events
- * from the timer interrupt handler to the main program.
+ * A sample structure to pass samples
+ * from the timer handler to the main program.
  */
 typedef struct {
-    int timer_idx;
-    //uint64_t timer_counter_value;
+	uint16_t        sample;
 } timer_event_t;
 
 xQueueHandle timer_queue;
 
 
-/*
- * A simple helper function to print the raw timer counter value
- * and the counter value converted to seconds
- */
-static void inline print_timer_counter(uint64_t counter_value)
-{
-    printf("Counter: 0x%08x%08x\n", (uint32_t) (counter_value >> 32),
-                                    (uint32_t) (counter_value));
-    printf("Time   : %.8f s\n", (double) counter_value / TIMER_SCALE);
-}
-
-
-/*
- * The main task of this example program
- */
-#if 0
-static void timer_example_evt_task(void *arg)
-{
-    while (1) {
-        timer_event_t evt;
-        xQueueReceive(timer_queue, &evt, portMAX_DELAY);
-
-        /* Print information that the timer reported an event */
-        printf("Group[%d], timer[%d] alarm event\n", TIMER_GROUP, evt.timer_idx);
-
-        /* Print the timer values passed by event */
-        printf("------- EVENT TIME --------\n");
-        //print_timer_counter(evt.timer_counter_value);
-
-        /* Print the timer values as visible by this task */
-        printf("-------- TASK TIME --------\n");
-        uint64_t task_counter_value;
-        timer_get_counter_value(TIMER_GROUP, evt.timer_idx, &task_counter_value);
-        print_timer_counter(task_counter_value);
-    }
-}
-#endif
 
 static int level=1;
-
-void IRAM_ATTR timer_group0_isr(void *para)
-{
-    int timer_idx = (int) para;
-
-    /* Retrieve the interrupt status and the counter value
-       from the timer that reported the interrupt */
-    uint32_t intr_status = TIMERG0.int_st_timers.val;
-    TIMERG0.hw_timer[timer_idx].update = 1;
-    //uint64_t timer_counter_value = 
-    //    ((uint64_t) TIMERG0.hw_timer[timer_idx].cnt_high) << 32
-    //    | TIMERG0.hw_timer[timer_idx].cnt_low;
-
-    /* Prepare basic event data
-       that will be then sent back to the main program task */
-    timer_event_t evt;
-    //evt.timer_idx = timer_idx;
-    //evt.timer_counter_value = timer_counter_value;
-
-    /* Clear the interrupt
-       and update the alarm time for the timer with without reload */
-    if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_0) {
-        TIMERG0.int_clr_timers.t0 = 1;
-    } else if ((intr_status & BIT(timer_idx)) && timer_idx == TIMER_1) {
-        TIMERG0.int_clr_timers.t1 = 1;
-    } else {
-    }
-
 	
-	gpio_set_level(GPIO_NUM_4, level);
-	if (level==1) 
-	{
-		level=0;
-	} else {
-		level=1;
-	}
+//    xQueueSendFromISR(timer_queue, &evt, NULL);
 
-    /* After the alarm has been triggered
-      we need enable it again, so it is triggered the next time */
-    TIMERG0.hw_timer[timer_idx].config.alarm_en = TIMER_ALARM_EN;
-
-    /* Now just send the event data back to the main program task */
-    xQueueSendFromISR(timer_queue, &evt, NULL);
-}
-
-/*
- * Initialize selected timer of the timer group 0
- *
- * timer_idx - the timer number to initialize
- * timer_interval_sec - the interval of alarm to set
- */
-static void example_tg0_timer_init(int timer_idx,  double timer_interval_sec)
-{
-    /* Select and initialize basic parameters of the timer */
-    timer_config_t config;
-    config.divider = TIMER_DIVIDER;
-    config.counter_dir = TIMER_COUNT_UP;
-    config.counter_en = TIMER_PAUSE;
-    config.alarm_en = TIMER_ALARM_EN;
-    config.intr_type = TIMER_INTR_LEVEL;
-    config.auto_reload = 1;  // Auto reload
-    timer_init(TIMER_GROUP_0, timer_idx, &config);
-
-    /* Timer's counter will initially start from value below.
-       Also, if auto_reload is set, this value will be automatically reload on alarm */
-    timer_set_counter_value(TIMER_GROUP_0, timer_idx, 0x00000000ULL);
-
-    /* Configure the alarm value and the interrupt on alarm. */
-    timer_set_alarm_value(TIMER_GROUP_0, timer_idx, timer_interval_sec * TIMER_SCALE);
-    timer_enable_intr(TIMER_GROUP_0, timer_idx);
-    timer_isr_register(TIMER_GROUP_0, timer_idx, timer_group0_isr, 
-        (void *) timer_idx, ESP_INTR_FLAG_IRAM, NULL);
-
-    timer_start(TIMER_GROUP_0, timer_idx);
-}
 
 uint16_t getSample() {
 	// 0x3FF4403C, GPIO_IN_REG
 	// TODO, there should be a more direct way to read this
 
-	return (gpio_get_level(12) || 
-	        (gpio_get_level(13) << 1) ||  
-			//(gpio_get_level(14) << 2) ||
-			(gpio_get_level(15) << 3) ||
-			(gpio_get_level(16) << 4));
+    uint16_t ret=0;
+	ret=gpio_get_level(13) || 
+	        (gpio_get_level(14) << 1) ||  
+			//(gpio_get_level(15) << 2) ||
+			(gpio_get_level(16) << 3);
+
+	return (ret);
+			// ||
+			//(gpio_get_level(16) << 4));
 }
 
 static void portc_init(void)
@@ -201,11 +91,11 @@ static void portc_init(void)
             //18,
             //19,
             //20,
-            //21,
-            //22,
-            //23,
-            //24,
-            25,
+            21,
+            22,
+            23,
+            24,
+            //25,
             //26,
             //27
     };
@@ -224,30 +114,57 @@ static void portc_init(void)
 	//int level16=gpio_get_level(16);
 
 #if 0
-	GPIO_InitTypeDef gpio_init;
-	GPIO_TypeDef *hal_gpio_port;
-	hal_gpio_port =(GPIO_TypeDef*)GPIOC;
-
-	uint8_t gpio_pin;
-
 	gpio_init.Mode = GPIO_MODE_INPUT;
 	gpio_init.Speed = GPIO_SPEED_HIGH;
 	gpio_init.Pull = GPIO_PULLDOWN;
-	gpio_init.Alternate = 0; /* Not used */
-
-	for(gpio_pin=0; gpio_pin<15; gpio_pin++) {
-		HAL_GPIO_DeInit(hal_gpio_port, 1 << gpio_pin);
-		gpio_init.Pin = 1 << gpio_pin;
-		HAL_GPIO_Init(hal_gpio_port, &gpio_init);
-	}
 #endif
 }
 
+
+// High res timer
+void high_res_timer(void *para) {
+	//if (config_state == SUMP_STATE_TRIGGED) {
+    //
+	//}
+
+	level++;
+	if (level<1000) 
+	{
+		gpio_set_level(GPIO_NUM_4, 1);
+		//gpio_set_level(GPIO_NUM_14, 1);
+	} else if (level <2000) {
+		gpio_set_level(GPIO_NUM_4, 0);
+		//gpio_set_level(GPIO_NUM_14, 0);
+	} else {
+		level=0;
+	}
+
+	if (sconfig.state !=SUMP_STATE_IDLE) {
+
+		timer_event_t evt;
+
+		evt.sample=getSample();
+		xQueueSend( timer_queue, ( void * ) &evt, ( TickType_t ) 0 );
+	}
+}
+
+
+
 static void tim_init(void)
 {
-	example_tg0_timer_init(TIMER_0, TIMER_INTERVAL0_SEC);
-	// Test the timer events
-	//xTaskCreate(timer_example_evt_task, "timer_evt_task", 2048, NULL, 5, NULL);
+	esp_timer_create_args_t  high_res_args;
+
+	high_res_args.callback=high_res_timer;
+	high_res_args.arg=NULL;
+	high_res_args.dispatch_method=ESP_TIMER_TASK; // TODO, from ISR??
+	high_res_args.name=tim_name;
+
+	if (ESP_OK!=esp_timer_create(&high_res_args,&sample_timer)) {
+		printf("!!!!!! Failed to create timer, samp_tim!!!!!\n");
+	}
+														// 1000 microsec.. Send sample each ms
+	esp_timer_start_periodic(sample_timer, 1000);
+
 #if 0
 	htim.Instance = TIM4;
 
@@ -290,6 +207,8 @@ void sump_init(void)
     timer_queue = xQueueCreate(1000, sizeof(timer_event_t));
 	portc_init();
 	tim_init();
+
+	sconfig.read_count=100;
 }
 
 static void get_samples(void)
@@ -313,13 +232,11 @@ static void get_samples(void)
 
 		while(1)
 		{
-			//while( !(TIM4->SR & TIM_SR_UIF)) {
-				//Wait for timer...
-			//}
+			// Wait for timer
 			timer_event_t evt;
             xQueueReceive(timer_queue, &evt, portMAX_DELAY);
 
-			*(buffer+INDEX) = getSample();
+			*(buffer+INDEX) = evt.sample;
 			//*(buffer+INDEX) = GPIOC->IDR;
 			//TIM4->SR &= ~TIM_SR_UIF;  //clear overflow flag
 			if ( !((*(buffer+INDEX) ^ config_trigger_value) & config_trigger_mask) ) {
@@ -337,13 +254,10 @@ static void get_samples(void)
 
 		while(config_delay_count > 0)
 		{
-			//while( !(TIM4->SR & TIM_SR_UIF)) {
-				//Wait for timer...
-			//}
 			timer_event_t evt;
             xQueueReceive(timer_queue, &evt, portMAX_DELAY);
 
-			*(buffer+INDEX) = getSample();
+			*(buffer+INDEX) = evt.sample;
 
 			//*(buffer+INDEX) = GPIOC->IDR;
 			//TIM4->SR &= ~TIM_SR_UIF;  //clear overflow flag
@@ -352,6 +266,7 @@ static void get_samples(void)
 			INDEX &= STATES_LEN-1;
 		}
 	}
+	gpio_set_level(GPIO_NUM_4, 0);
 	gpio_set_level(GPIO_NUM_2, 0);
 
 	//chSysUnlock();
@@ -406,9 +321,9 @@ int uart_read_chars (sump_context_t * context,  unsigned char * data,unsigned in
 	unsigned char *ptr = data;
 	while(len>0) {
 		size = uart_read_bytes(context->uart_portno, ptr, 1, portMAX_DELAY);
-		if (size == 1) {
-			len--;
-			ptr++;
+		if (size >0) {
+			len-=size;
+			ptr+=size;
 		} // End of read a character
 	} // End of loop
 	return (ret);
@@ -417,6 +332,9 @@ int uart_read_chars (sump_context_t * context,  unsigned char * data,unsigned in
 int uart_write (sump_context_t * context, const char * data, size_t len)
 {
 	int  num_written= uart_write_bytes(context->uart_portno, data ,len);
+	if (num_written<len) {
+
+	}
 	return num_written;
 };
 
@@ -438,6 +356,10 @@ sump_interface_t uart_interface = {
 	.flush=uart_sump_flush,
 };
 
+
+void sump_debug(char *str,unsigned int value);
+
+
 void sump(sump_context_t *context,sump_interface_t *io)
 {
 
@@ -449,19 +371,13 @@ void sump(sump_context_t *context,sump_interface_t *io)
 	uint32_t index=0;
 	int size;
 	//printf("SUMP ENTER\n");
-	int level=1;
 	io->flush(context);
 	
 	// !(gpio_get_level(0)==0)
 	while (true) {
 		if(io->read_timeout(context, &sump_command, 1, 500/portTICK_PERIOD_MS)) {
-		  	gpio_set_level(GPIO_NUM_2, level);
-			if (level==1) 
-			{
-				level=0;
-			} else {
-				level=1;
-			}
+		    sump_debug("cmd=",sump_command);
+
 			switch(sump_command) {
 			case SUMP_RESET:			
 				break;
@@ -526,8 +442,16 @@ void sump(sump_context_t *context,sump_interface_t *io)
 				reply[5]='2';
 				reply[6]=0x0;
 				size = io->write(context, (const char *)reply, 7);
-				//sprintf( reply,);
-				//printf( "%c", 0x00);
+
+				// Usable probes -- 8
+				reply[0]=0x20;								
+				reply[1]=0x00;
+				reply[2]=0x00;
+				reply[3]=0x00;
+				reply[4]=0x08;
+				size = io->write(context, (const char *)reply, 5);
+
+
 				//sample memory (8192)
 				reply[0]=0x21;								
 				reply[1]=0x00;
@@ -543,10 +467,10 @@ void sump(sump_context_t *context,sump_interface_t *io)
 				reply[4]=0x80;
 				size = io->write(context, (const char *)reply, 5);
 
-				//number of probes (16)
-				reply[0]=0x40;								
-				reply[1]=0x08;
-				size = io->write(context, (const char *)reply, 2);
+				//number of probes (8)
+				//reply[0]=0x40;								
+				//reply[1]=0x08;
+				//size = io->write(context, (const char *)reply, 2);
 				//protocol version (2)
 				reply[0]=0x41;								
 				reply[1]=0x02;
@@ -564,6 +488,11 @@ void sump(sump_context_t *context,sump_interface_t *io)
 			default:
 				// Other commands take 4 bytes as parameters
 				if(io->read_chars(context, (unsigned char *)sump_parameters, 4) == 4) {
+						sump_debug("0=",sump_parameters[0]);
+						sump_debug("1=",sump_parameters[1]);
+						sump_debug("2=",sump_parameters[2]);
+						sump_debug("3=",sump_parameters[3]);
+
 					switch(sump_command) {
 					case SUMP_TRIG_1:
 					case SUMP_TRIG_2:
@@ -578,6 +507,9 @@ void sump(sump_context_t *context,sump_interface_t *io)
 						sconfig.trigger_masks[index] |= sump_parameters[1];
 						sconfig.trigger_masks[index] <<= 8;
 						sconfig.trigger_masks[index] |= sump_parameters[0];
+
+						sump_debug("trigger_masks[]=",sconfig.trigger_masks[index]);
+
 						break;
 					case SUMP_TRIG_VALS_1:
 					case SUMP_TRIG_VALS_2:
@@ -592,6 +524,8 @@ void sump(sump_context_t *context,sump_interface_t *io)
 						sconfig.trigger_values[index] |= sump_parameters[1];
 						sconfig.trigger_values[index] <<= 8;
 						sconfig.trigger_values[index] |= sump_parameters[0];
+						sump_debug("trigger_values[]=",sconfig.trigger_values[index]);
+
 						break;
 					case SUMP_CNT:
 						sconfig.delay_count = sump_parameters[3];
@@ -603,6 +537,16 @@ void sump(sump_context_t *context,sump_interface_t *io)
 						sconfig.read_count |= sump_parameters[0];
 						sconfig.read_count++;
 						sconfig.read_count <<= 2; /* values are multiples of 4 */
+						if (sconfig.read_count>STATES_LEN-1) {
+							sconfig.read_count=STATES_LEN-1;
+						}
+						if (sconfig.delay_count>STATES_LEN-1) {
+							sconfig.delay_count=STATES_LEN-1;
+						}
+
+
+						sump_debug("read_count=",sconfig.read_count);
+						sump_debug("delay_count=",sconfig.delay_count);
 						break;
 					case SUMP_DIV:
 						sconfig.divider = sump_parameters[2];
@@ -612,6 +556,12 @@ void sump(sump_context_t *context,sump_interface_t *io)
 						sconfig.divider |= sump_parameters[0];
 						sconfig.divider /= 50; /* Assuming 100MHz base frequency */
 						sconfig.divider++;
+						sump_debug("divider=",sconfig.read_count);
+						unsigned int freq=1000000/(1+sconfig.divider);
+						sump_debug("freq=",freq);
+
+						//esp_timer_stop(sample_timer);
+						//esp_timer_start_periodic(sample_timer, 1000);
 						//  the sampling frequency is set to f = clock / (x + 1)
 						// Dont do this yet
 						//tim_set_prescaler();
@@ -628,7 +578,7 @@ void sump(sump_context_t *context,sump_interface_t *io)
 			}
 		}
 	}
-	printf("SUMP EXIT\n");
+	//printf("SUMP EXIT\n");
 	sump_deinit();
 }
 

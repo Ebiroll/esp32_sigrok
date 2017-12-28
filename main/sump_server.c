@@ -132,6 +132,21 @@ int SUMP_Flush(sump_context_t * context) {
     return SUMP_RES_OK;
 }
 
+
+void sump_debug(char *str,unsigned int value) {
+
+    strcpy(&SUMP_outputBuffer[SUMP_outputBuffer_idx], str);
+    SUMP_outputBuffer_idx +=  strlen(str);
+    char Buffer[10];
+    sprintf(Buffer,"0x%X\n",value);
+
+    strcpy(&SUMP_outputBuffer[SUMP_outputBuffer_idx], Buffer);
+    SUMP_outputBuffer_idx +=  strlen(Buffer);
+
+    SUMP_Flush(&context);
+} 
+
+
 int SUMP_Error(sump_context_t * context, int_fast16_t err) {
     (void) context;
     /* BEEP */
@@ -214,7 +229,7 @@ void SUMP_netconn_callback(struct netconn * conn, enum netconn_evt evt, u16_t le
     queue_event_t msg;
     (void) len;
 
-    printf("SUMP_netconn_callback\n");
+    //printf("SUMP_netconn_callback\n");
 
     if (evt == NETCONN_EVT_RCVPLUS) {
         msg.cmd = SUMP_MSG_TEST;

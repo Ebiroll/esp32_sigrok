@@ -107,7 +107,7 @@ static void init_uart()
   QueueHandle_t uart_queue;
   // Use default pins for the uart
   //ESP_ERROR_CHECK( uart_set_pin(uart_num, 1, 3, -1, -1));
-  ESP_ERROR_CHECK( uart_driver_install(uart_num, 512 * 2, 512 * 2, 10,  &uart_queue,0));
+  ESP_ERROR_CHECK( uart_driver_install(uart_num, 512 * 4, 512 * 4, 20,  &uart_queue,0));
 
 }
 
@@ -124,7 +124,7 @@ static void uartECHOTask(void *inpar) {
      if (size<=0) {
          echoLine[0]='T';
      }
-     gpio_set_level(GPIO_NUM_2, level);
+    gpio_set_level(GPIO_NUM_2, level);
     if (level==1) 
     {
         level=0;
@@ -162,7 +162,7 @@ void send_remote_pulses() {
 
   config.rmt_mode = RMT_MODE_TX;
   config.channel = RMT_CHANNEL_0;
-  config.gpio_num = 14; //STEP_PIN;, we use pin 14 directly, this way no cable is needed.
+  config.gpio_num = 13; //STEP_PIN;, we use pin 14 directly, this way no cable is needed.
   config.mem_block_num = 1;
   config.tx_config.loop_en = 1;
   config.tx_config.carrier_en = 0;
@@ -220,8 +220,10 @@ void app_main(void)
     ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
+    //gpio_set_direction(GPIO_NUM_15, GPIO_MODE_OUTPUT);
+    //gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
+    //gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
 
     gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
     gpio_set_level(GPIO_NUM_2, 0);
@@ -245,8 +247,10 @@ void app_main(void)
 
 
     // esp_err_t rmt_write_items(rmt_channel_t channel, rmt_item32_t *rmt_item, int item_num, bool wait_tx_done)
-    //send_remote_pulses();
-    //rmt_write_items(config.channel, items, 1, 0);
+    send_remote_pulses();
+    rmt_write_items(config.channel, items, 1, 0);
+
+
     //xTaskCreatePinnedToCore(&remoteTask, "remote", 4096, NULL, 20, NULL, 0);
 
     // To look at test data for 
@@ -254,7 +258,7 @@ void app_main(void)
     //xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 1);
 
     sump_init();
-    //sump_server_init();
+    sump_server_init();
     sump_uart();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);

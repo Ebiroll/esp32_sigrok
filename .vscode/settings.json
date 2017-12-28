@@ -13,6 +13,13 @@
         "string_view": "c",
         "scpi-def.h": "c",
         "condition_variable": "c",
-        "array": "c"
+        "array": "c",
+        "sstream": "c",
+        "istream": "c",
+        "optional": "c",
+        "ostream": "c",
+        "ratio": "c",
+        "type_traits": "c",
+        "bitset": "c"
     }
 }
