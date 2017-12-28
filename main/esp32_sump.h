@@ -1,3 +1,6 @@
+#ifndef __ESP32_SUMP
+#define __ESP32_SUMP
+
 /*
  * HydraBus/HydraNFC
  *  ESP32 sigrok 
@@ -25,6 +28,7 @@
 //#include "lwip/inet.h"
 #include "lwip/sockets.h"
 #include "lwip/api.h"
+#include <stdint.h>
 
 
 #define SUMP_RESET	0x00
@@ -63,12 +67,14 @@ typedef struct {
 typedef struct _sump_t {
 	int            uart_portno;
 	struct netconn *io;
+	struct netconn *io_listen;
+
 	xQueueHandle   evtQueue;
 } sump_context_t;
 
 
-typedef int(*sump_read_timeout_t)(sump_context_t * context, char * data,unsigned int len, size_t timeout);
-typedef int(*sump_read_chars_t)(sump_context_t * context, char * data,unsigned int len);
+typedef int(*sump_read_timeout_t)(sump_context_t * context, unsigned char * data,unsigned int len, size_t timeout);
+typedef int(*sump_read_chars_t)(sump_context_t * context, unsigned char * data,unsigned int len);
 typedef int(*sump_write_t)(sump_context_t * context, const char * data, size_t len);
 typedef int (*sump_error_callback_t)(sump_context_t * context, int_fast16_t error);
 typedef int (*sump_flush_t)(sump_context_t * context);
@@ -82,8 +88,16 @@ struct _sump_interface_t {
 		sump_flush_t            flush;
     };
 
+typedef int SUMP_result_t;
+
 typedef struct _sump_interface_t sump_interface_t;
+
+enum _sump_result_t {
+	SUMP_RES_OK = 1,
+	SUMP_RES_ERR = -1
+};
 
 void sump_init();
 void sump_uart();
-void sump_network();
+void sump(sump_context_t *context,sump_interface_t *io);
+#endif

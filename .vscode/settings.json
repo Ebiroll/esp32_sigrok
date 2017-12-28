@@ -10,6 +10,9 @@
         "system_error": "c",
         "*.ipp": "c",
         "*.tcc": "c",
-        "string_view": "c"
+        "string_view": "c",
+        "scpi-def.h": "c",
+        "condition_variable": "c",
+        "array": "c"
     }
 }

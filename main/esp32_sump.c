@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
+
 #include <stdio.h>
 #include "esp32_sump.h"
 #include <stdlib.h>
@@ -76,6 +76,7 @@ static void inline print_timer_counter(uint64_t counter_value)
 /*
  * The main task of this example program
  */
+#if 0
 static void timer_example_evt_task(void *arg)
 {
     while (1) {
@@ -96,6 +97,7 @@ static void timer_example_evt_task(void *arg)
         print_timer_counter(task_counter_value);
     }
 }
+#endif
 
 static int level=1;
 
@@ -189,10 +191,10 @@ static void portc_init(void)
 {
 	    gpio_num_t pins[] = {
 			// JTAG, on the wrover kit
-            12,
+            //12,
             //13,
             //14,
-            15,
+            //15,
 			// Other
             //16,
             //17
@@ -203,7 +205,7 @@ static void portc_init(void)
             //22,
             //23,
             //24,
-            //25,
+            25,
             //26,
             //27
     };
@@ -218,8 +220,8 @@ static void portc_init(void)
         gpio_config(&conf);
     }
 
-	int level0=gpio_get_level(0);
-	int level16=gpio_get_level(16);
+	//int level0=gpio_get_level(0);
+	//int level16=gpio_get_level(16);
 
 #if 0
 	GPIO_InitTypeDef gpio_init;
@@ -261,6 +263,7 @@ static void tim_init(void)
 #endif
 }
 
+#if 0
 static void tim_set_prescaler(void)
 {
 	//  f = clock / (x + 1)
@@ -279,6 +282,7 @@ static void tim_set_prescaler(void)
 	HAL_TIM_Base_Init(&htim);
 #endif
 }
+#endif
 
 void sump_init(void)
 {
@@ -372,7 +376,7 @@ static void sump_deinit(void)
 
 char reply[10];
 
-size_t uart_read_timeout(sump_context_t * context, const char * data,unsigned int len, size_t timeout)
+int uart_read_timeout(sump_context_t * context,unsigned char * data,unsigned int len, size_t timeout)
 {
 	size_t size;
 	int num_read=0;
@@ -395,11 +399,11 @@ size_t uart_read_timeout(sump_context_t * context, const char * data,unsigned in
 	return num_read;
 };
 
-int uart_read_chars (sump_context_t * context,  char * data,unsigned int len)
+int uart_read_chars (sump_context_t * context,  unsigned char * data,unsigned int len)
 {
 	int size;
 	int ret=len;
-	unsigned char *ptr = (unsigned char *)data;
+	unsigned char *ptr = data;
 	while(len>0) {
 		size = uart_read_bytes(context->uart_portno, ptr, 1, portMAX_DELAY);
 		if (size == 1) {
@@ -440,13 +444,13 @@ void sump(sump_context_t *context,sump_interface_t *io)
 	//sump_init();
 	sconfig.state = SUMP_STATE_IDLE;
 
-	char  sump_command;
+	unsigned char  sump_command;
 	uint8_t sump_parameters[4] = {0};
 	uint32_t index=0;
 	int size;
 	//printf("SUMP ENTER\n");
 	int level=1;
-	uart_flush(0);
+	io->flush(context);
 	
 	// !(gpio_get_level(0)==0)
 	while (true) {
@@ -477,7 +481,6 @@ void sump(sump_context_t *context,sump_interface_t *io)
 				get_samples();
 
 				while(sconfig.read_count > 0) {
-					char zero=0;
 					if (INDEX == 0) {
 						INDEX = STATES_LEN-1;
 					} else {
@@ -539,15 +542,19 @@ void sump(sump_context_t *context,sump_interface_t *io)
 				reply[3]=0x84;
 				reply[4]=0x80;
 				size = io->write(context, (const char *)reply, 5);
+
 				//number of probes (16)
 				reply[0]=0x40;								
-				reply[1]=0x10;
+				reply[1]=0x08;
 				size = io->write(context, (const char *)reply, 2);
 				//protocol version (2)
 				reply[0]=0x41;								
 				reply[1]=0x02;
-				reply[2]=0x00;
-				size = io->write(context, (const char *)reply, 3);
+				size = io->write(context, (const char *)reply, 2);
+
+				// End
+				reply[0]=0x00;
+				size = io->write(context, (const char *)reply, 1);
 				io->flush(context);
 				break;
 			case SUMP_XON:
@@ -556,7 +563,7 @@ void sump(sump_context_t *context,sump_interface_t *io)
 				break;
 			default:
 				// Other commands take 4 bytes as parameters
-				if(io->read_chars(context, (char *)sump_parameters, 4) == 4) {
+				if(io->read_chars(context, (unsigned char *)sump_parameters, 4) == 4) {
 					switch(sump_command) {
 					case SUMP_TRIG_1:
 					case SUMP_TRIG_2:
@@ -631,8 +638,4 @@ void sump_uart() {
   sump_context_t context;
   context.uart_portno=0;
   sump(&context,&uart_interface);
-}
-
-void sump_network() {
-
 }

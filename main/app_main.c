@@ -187,6 +187,7 @@ static void remoteTask(void *inpar) {
     vTaskDelay(2000 / portTICK_PERIOD_MS);
 }
 
+void sump_server_init(void);
 
 void app_main(void)
 {
@@ -222,6 +223,10 @@ void app_main(void)
     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
     gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
 
+    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_2, 0);
+
+
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);	    
     gpio_set_level(GPIO_NUM_4, 0);
 
@@ -249,6 +254,7 @@ void app_main(void)
     //xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 1);
 
     sump_init();
+    //sump_server_init();
     sump_uart();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
