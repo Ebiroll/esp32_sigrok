@@ -16,6 +16,8 @@ The key to using the ESP32 with sigrok was using the WROVER-kit. :-P
 It was not the code in this repository... Accidental success. 
 I knew there was something strange when the code was working on the first try. It is thanks to the JTAG, chips on the WROVER-KIT board that data acquisition was working so well.
 
+In this code the sump protocol is implemented over USB and tcp/ip. 
+
 When starting pulseview with logging,  -l 5 it seems that the FTDI-LA drivers were used.
 
 https://sigrok.org/gitweb/?p=libsigrok.git;a=tree;f=src/hardware/ftdi-la
@@ -92,6 +94,17 @@ static void uartWRITETask(void *inpar) {
 ![uart](uart.png)
 
 # Project status
+Currently not working well.
+
+It has howerer , SCPI over the network ,
+sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
+And some sump over network or USB, however libsigrok only supports SUMP over USB.
+Instead sump over TCP/IP was used for debugging.
+nc 192.168.1.130 5566
+
+For data aquisition High resolution timer is used.
+http://esp-idf.readthedocs.io/en/latest/api-reference/system/esp_timer.html
+
 Trying to  add rigol emulation and emulate sending of analouge and digital waveforms
 
 In directory linux, you can build a test client, it listens to port 5555
@@ -100,6 +113,11 @@ In directory linux, you can build a test client, it listens to port 5555
 To try connect 
  sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
 This will send *IDN? to the instrument
+
+You can also try this 
+./olas-cli -d rigol-ds:conn=tcp-raw/192.168.1.130/5555  -l 5  --show
+
+Unfortunatley this software currently does not work well enough.
 
 
 https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
@@ -115,11 +133,11 @@ To build a debuggable version of sigrok-cli use the CMakeLists.txt file
  ./olas-cli -d rigol-ds:conn=tcp-raw/192.168.1.127/5555  -l 5  --show
 ```
 
-To test 
-./olas-cli -d ols:conn=/dev/ttyUSB1 -l 5  -c samplerate=1khz --samples 10
+To test reading data with sump.
+./olas-cli -d ols:conn=/dev/ttyUSB1 -l 5  -c samplerate=1Mhz --samples 100
 
 ```
-Currently pulseview exits with Caught exception: not applicable
+When using SUMP protocol currently pulseview exits with Caught exception: not applicable
 sr: [00:31.316006] ols: Sending cmd 0x00.
 ... Initial 5 zeroes sent
 

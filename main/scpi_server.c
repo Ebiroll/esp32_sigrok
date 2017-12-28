@@ -56,9 +56,7 @@
 #define CONTROL_PORT 5556
 
 
-
-
-#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 2)
+#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 5)
 
 #define SCPI_MSG_TIMEOUT                0
 #define SCPI_MSG_TEST                   1
@@ -128,8 +126,8 @@ scpi_result_t SCPI_Flush(scpi_t * context) {
         if (u->io) {
             SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
             SCPI_outputBuffer_idx++;
-            //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0; 
-            //SCPI_outputBuffer_idx++;
+            SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0; 
+            SCPI_outputBuffer_idx++;
             int tmp=SCPI_outputBuffer_idx;
             SCPI_outputBuffer_idx=0;
             netconn_write(u->io, SCPI_outputBuffer, tmp, NETCONN_NOCOPY); 
