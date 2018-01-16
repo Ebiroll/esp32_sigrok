@@ -670,19 +670,19 @@ char sample_data[4096];
 
 static scpi_result_t wav_data(scpi_t * context) {
     const char * data;
-    size_t len=4096;
+    size_t len=1400;
 
     printf("wav_data ");
 
     //#90 0000 1400 1400
 
 
-    for (int i=0;i<1024;i+=2) {
+    for (int i=0;i<350;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
        sample_data[i*2]='0';
        sample_data[i*2+1]='1';
     }
-    for (int i=1024;i<2048;i+=2) {
+    for (int i=350;i<700;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
        sample_data[i*2]='7';
        sample_data[i*2+1]='F';

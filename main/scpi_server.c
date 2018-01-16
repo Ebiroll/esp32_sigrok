@@ -94,7 +94,7 @@ user_data_t user_data = {
 };
 
 /* a global output buffer to collect output data until it will be 'flushed' */
-#define SCPI_OUPUT_BUFFER_SIZE      (256)
+#define SCPI_OUPUT_BUFFER_SIZE      (4096+30)
 char SCPI_outputBuffer[SCPI_OUPUT_BUFFER_SIZE];
 unsigned int SCPI_outputBuffer_idx = 0;
 
