@@ -199,6 +199,10 @@ https://github.com/gillham/logic_analyzer/blob/master/logic_analyzer.ino
 
 #Rigol and SCPI
 
+TODO, contact this person
+https://github.com/hackrid/pyrigolla/
+
+
 Other than the SUMP protocol we could try to emulate this RIGOL osciloscope,
 https://www.batronix.com/shop/oscilloscopes/Rigol-VS5202D.html
 

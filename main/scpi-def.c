@@ -362,14 +362,14 @@ static scpi_result_t My_CoreTstQ(scpi_t * context) {
  */
 static scpi_result_t chan_disp_on(scpi_t * context) {
 
-    SCPI_ResultMnemonic(context, "on");
+    SCPI_ResultMnemonic(context, "1");
 
     return SCPI_RES_OK;
 }
 
 static scpi_result_t chan_disp_off(scpi_t * context) {
 
-    SCPI_ResultMnemonic(context, "off");
+    SCPI_ResultMnemonic(context, "0");
     //SCPI_ResultBool(context, 0);
 
     return SCPI_RES_OK;
@@ -435,9 +435,10 @@ Query returns
 
 static scpi_result_t time_scale(scpi_t * context) {
 
-    SCPI_ResultFloat(context, 2.0f);
+    //SCPI_ResultFloat(context, 2.0f);
+    SCPI_ResultMnemonic(context, "1e-6");
 
-    //SCPI_ResultText(context, "2.000e+00");
+    //SCPI_ResultText(context, "1e-6");
     //SCPI_ResultFloat(context, 2.0f);
     //SCPI_ResultBool(context, 0);
 
@@ -455,9 +456,9 @@ to keep the  Measurement exact
 The options of <n>
 are 1 or 2.
 */
-    SCPI_ResultFloat(context, 2.0f);
+    //SCPI_ResultFloat(context, 2.0f);
 
-    //SCPI_ResultText(context, "2.000e+00");
+    SCPI_ResultMnemonic(context, "1");
     //SCPI_ResultFloat(context, 2.0f);
     //SCPI_ResultBool(context, 0);
 
@@ -525,6 +526,21 @@ returns “CH1”, “CH2”, “EXT”,
 
     return SCPI_RES_OK;
 }
+
+
+static scpi_result_t la_stat_query(scpi_t * context) {
+
+/*
+Returned Format:
+Query returns “DC”,“AC” or “GND”. 
+The double quotes are not returned.
+*/
+    SCPI_ResultMnemonic(context, "1");
+
+
+    return SCPI_RES_OK;
+}
+
 
 static scpi_result_t tim_offset(scpi_t * context) {
 
@@ -650,28 +666,49 @@ if (times_called>1000) {
 return SCPI_RES_OK;
 }
 
-float sample_data[2048];
+char sample_data[4096];
 
 static scpi_result_t wav_data(scpi_t * context) {
     const char * data;
-    size_t len;
+    size_t len=4096;
 
     printf("wav_data ");
 
-    if (SCPI_ParamArbitraryBlock(context, &data, &len, FALSE)) {
-        // 
-        //SCPI_ResultArbitraryBlock(context, data, len);
-           printf("%s\n",data);
+    //#90 0000 1400 1400
+
+
+    for (int i=0;i<1024;i+=2) {
+        //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
+       sample_data[i*2]='0';
+       sample_data[i*2+1]='1';
+    }
+    for (int i=1024;i<2048;i+=2) {
+        //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
+       sample_data[i*2]='7';
+       sample_data[i*2+1]='F';
     }
 
-    for (int i=0;i<2048;i++) {
-        sample_data[i]=2.0*i/2048;
-        SCPI_ResultFloat(context, sample_data[i]);
-    }
 
-   //SCPI_ResultArbitraryBlock(context,sample_data,2048);
+   SCPI_ResultArbitraryBlock(context,sample_data,len);
    return SCPI_RES_OK;
 }
+
+static scpi_result_t wav_yref(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "127");
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t wav_stat(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "IDLE,1400");
+
+    return SCPI_RES_OK;
+}
+
+
 
 
 
@@ -732,7 +769,7 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "DIG15:TURN?", .callback = chan_disp_off,},
     { .pattern = "DIG16:TURN?", .callback = chan_disp_off,},
 
-    { .pattern = "TIM:SCAL?", .callback = time_scale,},
+    { .pattern = ":TIM:SCAL?", .callback = time_scale,},
     { .pattern = ":CHAN1:PROB?", .callback = chan1_probe,},
     { .pattern = ":CHAN2:PROB?", .callback = chan1_probe,},
     { .pattern = ":CHAN1:SCAL?", .callback = chan1_scal,},
@@ -748,10 +785,41 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "TIM:OFFS?", .callback = tim_offset,},
     { .pattern = "TRIG:EDGE:SLOP?", .callback = trig_edge_slope,},
     { .pattern = "TRIG:EDGE:LEV?", .callback = trig_edge_level,},
+
+    { .pattern = ":LA:STAT?", .callback = la_stat_query,},
+
+    { .pattern = ":LA:DIG0:DISP?", .callback = chan_disp_on,},
+    { .pattern = ":LA:DIG1:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG2:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG3:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG4:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG5:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG6:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG7:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG8:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG9:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG10:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG11:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG12:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG13:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG14:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG15:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG16:DISP?", .callback = chan_disp_off,},
+
     
+    { .pattern = "WAV:YREF?", .callback = wav_yref,},
+    { .pattern = "WAV:STAT?", .callback = wav_stat,},
+
+
+
+    
+    
+
     { .pattern = "RUN", .callback = run_to_the_hills,},
     { .pattern = "STOP", .callback = stop_acquisition,},
     { .pattern = "TRIG:STAT?", .callback = trig_status,},
+
+
 
     
 
@@ -767,7 +835,7 @@ const scpi_command_t scpi_commands[] = {
 //sr: [00:53.384711] session: bus: Received SR_DF_FRAME_BEGIN packet.
 //sr: [00:53.435286] scpi_tcp: Successfully sent SCPI command: ':TRIG:STAT?'.
 
-    {.pattern = " WAV:DATA? CHAN1", .callback = wav_data,},
+    {.pattern = "WAV:DATA?", .callback = wav_data,},  // CHAN1
 
 
 // Not used!

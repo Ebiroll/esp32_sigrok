@@ -9,10 +9,15 @@
 #define SCPI_IDN1 "RIGOL TECHNOLOGIES"
 //#define   SCPI_IDN1 "RIGOL TECHNOLOGIES,DS1102E,DS1EB104702974,00.02.05.01.00"
 //# firmware < 0.2.4, using raw data format.
-#define SCPI_IDN2 "VS5022D"     
-#define SCPI_IDN3 "VS50234567"
-#define SCPI_IDN4 "00.02.03.03.00"
+//#define SCPI_IDN2 "VS5022D"     
+//#define SCPI_IDN3 "VS50234567"
+//#define SCPI_IDN4 "00.02.03.03.00"
 // 00.02.04
+//Rigol Technologies,MSO2302A,DS1EXXXXXXXXXX,00.02.05.02.00
+#define SCPI_IDN2 "MSO2302A"     
+#define SCPI_IDN3 "DS1EXXXXXXXXXX"
+#define SCPI_IDN4 "00.02.05.02.00"
+
 
 extern const scpi_command_t scpi_commands[];
 extern scpi_interface_t scpi_interface;
