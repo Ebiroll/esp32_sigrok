@@ -302,6 +302,7 @@ static void closeIo(user_data_t * user_data) {
     netconn_close(user_data->io);
     netconn_delete(user_data->io);
     user_data->io = NULL;
+    SCPI_outputBuffer_idx=0;
     iprintf("***Connection closed\r\n");
 }
 
@@ -399,7 +400,8 @@ static void scpi_server_thread(void *arg) {
     scpi_context.user_context = &user_data;
 
     user_data.io_listen = createServer(DEVICE_PORT);
-    user_data.control_io_listen = createServer(CONTROL_PORT);
+    //user_data.control_io_listen = createServer(CONTROL_PORT);
+    user_data.control_io_listen = NULL;
 
     while (1) {
         waitServer(&user_data, &evt);

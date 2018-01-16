@@ -675,17 +675,39 @@ static scpi_result_t wav_data(scpi_t * context) {
     printf("wav_data ");
 
     //#90 0000 1400 1400
+/*
+    sample_data[0]='1';
+    sample_data[1]='4';
+    sample_data[2]='0';
+    sample_data[3]='0';
 
+    sample_data[4]='1';
+    sample_data[5]='4';
+    sample_data[6]='0';
+    sample_data[7]='0';
+*/
 
-    for (int i=0;i<350;i+=1) {
+    for (int i=0;i<150;i+=2) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
        sample_data[i*2]='0';
        sample_data[i*2+1]='1';
+       sample_data[i*2+2]='2';
+       sample_data[i*2+3]='3';
     }
-    for (int i=350;i<700;i+=1) {
+    for (int i=4;i<350;i+=2) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
-       sample_data[i*2]='7';
+       sample_data[i*2]='F';
        sample_data[i*2+1]='F';
+       sample_data[i*2+2]='F';
+       sample_data[i*2+3]='F';
+    }
+
+    for (int i=350;i<700;i+=2) {
+        //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
+       sample_data[i*2]='0' + ((i/2)%9);
+       sample_data[i*2+1]='F';
+       sample_data[i*2+2]='F';
+       sample_data[i*2+3]='7' ;
     }
 
 

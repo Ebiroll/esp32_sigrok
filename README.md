@@ -114,14 +114,26 @@ uint16_t getSample() &  portc_init(void)
 sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
 
 
-SCPI over the network is currently commented out from the code.
+SCPI over the network works, but only first time after reset.
+Needs debugging.
+The data format for the wav file is also unknown
+
 sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
-And some sump over network or USB, however libsigrok only supports SUMP over USB.
+
+It is possible tp run sump over network or USB, however libsigrok only supports SUMP over serial.
+
 Instead sump over TCP/IP was used for debugging.
-nc 192.168.1.130 5566
+```
+To use debug output, fix:
+sump_debug()
+
+```
+
+nc 192.168.1.130 5565
 
 For data aquisition High resolution timer is used.
 http://esp-idf.readthedocs.io/en/latest/api-reference/system/esp_timer.html
+
 
 Trying to  add rigol emulation and emulate sending of analouge and digital waveforms
 
@@ -134,8 +146,6 @@ This will send *IDN? to the instrument
 
 You can also try this 
 ./olas-cli -d rigol-ds:conn=tcp-raw/192.168.1.130/5555  -l 5  --show
-
-Unfortunatley this software currently does not work well enough.
 
 
 https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
@@ -154,35 +164,6 @@ To build a debuggable version of sigrok-cli use the CMakeLists.txt file
 To test reading data with sump.
 ./sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
 
-```
-When using SUMP protocol currently pulseview exits with Caught exception: not applicable
-sr: [00:31.316006] ols: Sending cmd 0x00.
-... Initial 5 zeroes sent
-
-sr: [00:31.316006] ols: Sending cmd 0x00.
-sr: [00:31.316397] serial: Wrote 1/1 bytes.
-sr: [00:31.316435] serial: Draining serial port /dev/ttyUSB1.
-sr: [00:31.316755] ols: Sending cmd 0x02.
-sr: [00:31.317130] serial: Wrote 1/1 bytes.
-sr: [00:31.317175] serial: Draining serial port /dev/ttyUSB1.
-sr: [00:31.328107] serial: Read 4/4 bytes.
-sr: [00:31.328149] ols: Sending cmd 0x04.
-sr: [00:31.328596] serial: Wrote 1/1 bytes.
-sr: [00:31.328661] serial: Draining serial port /dev/ttyUSB1.
-sr: [00:31.339184] ols: Device does not support metadata.
-sr: [00:31.339332] ols: Disabling demux mode.
-sr: [00:31.339358] serial: Closing serial port /dev/ttyUSB1.
-sr: [00:31.340761] hwdriver: Scan of 'ols' found 1 devices.
-sr: [00:33.353208] serial: Opening serial port '/dev/ttyUSB1' (flags 1).
-sr: [00:33.358160] serial: Parsing parameters from "115200/8n1".
-sr: [00:33.358301] serial: Setting serial parameters on port /dev/ttyUSB1.
-sr: [00:33.361693] hwdriver: sr_config_list(): key 30002 (pattern) sdi 0x564e0bfc70f0 cg NULL -> ['None', 'External', 'Internal']
-sr: [00:33.361750] hwdriver: sr_config_get(): key 30003 (rle) sdi 0x564e0bfc70f0 cg NULL -> false
-sr: [00:33.361792] hwdriver: sr_config_get(): key 30002 (pattern) sdi 0x564e0bfc70f0 cg NULL -> 'None'
-sr: [00:33.361869] hwdriver: sr_config_get(): key 30001 (captureratio) sdi 0x564e0bfc70f0 cg NULL -> uint64 0
-Caught exception: not applicable
-sr: [00:33.376098] serial: Closing serial port /dev/ttyUSB1.
-srd: Exiting libsigrokdecode.
 ```
 
 
