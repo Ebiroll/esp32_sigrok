@@ -52,14 +52,14 @@ static const char *TAG = "uart";
 
 char echoLine[BUF_SIZE];
 
-#if 0
+#if 1
 static void init_uart_1()
 {
   uart_port_t uart_num = UART_NUM_1;                                     //uart port number
 
 
   uart_config_t uart_config = {
-      .baud_rate = 9600,                    //baudrate
+      .baud_rate = 2400,                    //baudrate was 9600
       .data_bits = UART_DATA_8_BITS,          //data bit mode
       .parity = UART_PARITY_DISABLE,          //parity mode
       .stop_bits = UART_STOP_BITS_1,          //stop bit mode
@@ -84,7 +84,7 @@ static void uartWRITETask(void *inpar) {
 
   while(true) {
     int size = uart_write_bytes(uart_num, (const char *)echoLine, 4);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(30 / portTICK_PERIOD_MS);
   }
 }
 #endif
@@ -162,7 +162,7 @@ void send_remote_pulses() {
 
   config.rmt_mode = RMT_MODE_TX;
   config.channel = RMT_CHANNEL_0;
-  config.gpio_num = 13; //STEP_PIN;, we use pin 14 directly, this way no cable is needed.
+  config.gpio_num = 17; //STEP_PIN;, we use pin 14 directly, this way no cable is needed.
   config.mem_block_num = 1;
   config.tx_config.loop_en = 1;
   config.tx_config.carrier_en = 0;
@@ -176,7 +176,7 @@ void send_remote_pulses() {
    
   items[0].duration0 = 30000;  // 30.000 us
   items[0].level0 = 1;
-  items[0].duration1 = 15000;   // 15 ms
+  items[0].duration1 = 30000;   // 15 ms
   items[0].level1 = 0;  
 
 }
@@ -194,7 +194,7 @@ void app_main(void)
     nvs_flash_init();
     init_uart();
 
-#if 1
+#if 0
     tcpip_adapter_init();
     ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -220,17 +220,17 @@ void app_main(void)
     ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    //gpio_set_direction(GPIO_NUM_15, GPIO_MODE_OUTPUT);
+    gpio_set_direction(GPIO_NUM_17, GPIO_MODE_OUTPUT);
     //gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
+    //gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
     //gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
 
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_2, 0);
+    //gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+    //gpio_set_level(GPIO_NUM_2, 0);
 
 
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);	    
-    gpio_set_level(GPIO_NUM_4, 0);
+    //gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);	    
+    //gpio_set_level(GPIO_NUM_4, 0);
 
 #if 0
     // RGB leds on wrover kit
@@ -247,18 +247,18 @@ void app_main(void)
 
 
     // esp_err_t rmt_write_items(rmt_channel_t channel, rmt_item32_t *rmt_item, int item_num, bool wait_tx_done)
-    send_remote_pulses();
-    rmt_write_items(config.channel, items, 1, 0);
+    //send_remote_pulses();
+    //rmt_write_items(config.channel, items, 1, 0);
 
-
+    // Not necessary to set this
     //xTaskCreatePinnedToCore(&remoteTask, "remote", 4096, NULL, 20, NULL, 0);
 
-    // To look at test data for 
-    //init_uart_1();
-    //xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 1);
+    // To look at test UART data 2400 Baud on pin 18
+    init_uart_1();
+    xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 1);
 
     sump_init();
-    sump_server_init();
+    //sump_server_init();
     sump_uart();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);

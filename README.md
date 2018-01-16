@@ -94,9 +94,27 @@ static void uartWRITETask(void *inpar) {
 ![uart](uart.png)
 
 # Project status
-Currently not working well.
+Now it is working with sigrock and the latest version of esp-idf.
 
-It has howerer , SCPI over the network ,
+Perhaps this was helpful.
+https://github.com/espressif/esp-idf/commit/f482e9e54ce83e249e46f5ee082f6ffb61431339
+
+# Sigrok
+In pulseview
+Chose driver, Open bench Logic sniffer (ols)
+Choose the interface, i.e./dev/ttyUSB0
+Press Scan for devices,
+If successful select ESP32 with 8 channels.
+Change samplerate 10kHz. Its currently hardcoded to sample at this rate.
+
+Also you can add more sample by adding them in,
+uint16_t getSample() &  portc_init(void)
+
+# Command line run
+sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
+
+
+SCPI over the network is currently commented out from the code.
 sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
 And some sump over network or USB, however libsigrok only supports SUMP over USB.
 Instead sump over TCP/IP was used for debugging.
@@ -134,7 +152,7 @@ To build a debuggable version of sigrok-cli use the CMakeLists.txt file
 ```
 
 To test reading data with sump.
-./olas-cli -d ols:conn=/dev/ttyUSB1 -l 5  -c samplerate=1Mhz --samples 100
+./sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
 
 ```
 When using SUMP protocol currently pulseview exits with Caught exception: not applicable

@@ -38,7 +38,9 @@ esp_timer_handle_t   sample_timer;
 
 
 //static uint16_t *buffer = (uint16_t *)g_sbuf;
-static uint16_t *buffer;
+//static uint16_t *buffer;
+uint8_t *buffer;
+
 static uint16_t INDEX = 0;
 //static TIM_HandleTypeDef htim;
 static sump_config sconfig;
@@ -67,10 +69,10 @@ uint16_t getSample() {
 	// TODO, there should be a more direct way to read this
 
     uint16_t ret=0;
-	ret=gpio_get_level(13) || 
-	        (gpio_get_level(14) << 1) ||  
-			//(gpio_get_level(15) << 2) ||
-			(gpio_get_level(16) << 3);
+	ret=gpio_get_level(21) | 
+	        (gpio_get_level(22) << 1) |  
+			(gpio_get_level(23) << 2) |
+			(gpio_get_level(24) << 3);
 
 	return (ret);
 			// ||
@@ -130,20 +132,22 @@ void high_res_timer(void *para) {
 	level++;
 	if (level<1000) 
 	{
-		gpio_set_level(GPIO_NUM_4, 1);
+		//gpio_set_level(GPIO_NUM_4, 1);
 		//gpio_set_level(GPIO_NUM_14, 1);
 	} else if (level <2000) {
-		gpio_set_level(GPIO_NUM_4, 0);
+		//gpio_set_level(GPIO_NUM_4, 0);
 		//gpio_set_level(GPIO_NUM_14, 0);
 	} else {
 		level=0;
 	}
 
 	if (sconfig.state !=SUMP_STATE_IDLE) {
+		//static unsigned int go_test=0;
 
 		timer_event_t evt;
 
 		evt.sample=getSample();
+		//evt.sample=go_test++;
 		xQueueSend( timer_queue, ( void * ) &evt, ( TickType_t ) 0 );
 	}
 }
@@ -162,8 +166,8 @@ static void tim_init(void)
 	if (ESP_OK!=esp_timer_create(&high_res_args,&sample_timer)) {
 		printf("!!!!!! Failed to create timer, samp_tim!!!!!\n");
 	}
-														// 1000 microsec.. Send sample each ms
-	esp_timer_start_periodic(sample_timer, 1000);
+														// 1000 microsec.. Send sample each ms 1kHz
+	esp_timer_start_periodic(sample_timer, 100);        // 100 microsec, 10kHz
 
 #if 0
 	htim.Instance = TIM4;
@@ -219,7 +223,7 @@ static void get_samples(void)
 	/* Lock Kernel for logic analyzer */
 	//chSysLock();
 
-	gpio_set_level(GPIO_NUM_2, 1);
+	//gpio_set_level(GPIO_NUM_2, 1);
 	//HAL_TIM_Base_Start(&htim);
 
 	if(config_state == SUMP_STATE_ARMED)
@@ -229,6 +233,8 @@ static void get_samples(void)
 
 		config_trigger_value =  sconfig.trigger_values[0];
 		config_trigger_mask = sconfig.trigger_masks[0];
+
+		xQueueReset(timer_queue);
 
 		while(1)
 		{
@@ -266,8 +272,8 @@ static void get_samples(void)
 			INDEX &= STATES_LEN-1;
 		}
 	}
-	gpio_set_level(GPIO_NUM_4, 0);
-	gpio_set_level(GPIO_NUM_2, 0);
+	//gpio_set_level(GPIO_NUM_4, 0);
+	//gpio_set_level(GPIO_NUM_2, 0);
 
 	//chSysUnlock();
 	sconfig.state = SUMP_STATE_IDLE;
@@ -373,6 +379,11 @@ void sump(sump_context_t *context,sump_interface_t *io)
 	//printf("SUMP ENTER\n");
 	io->flush(context);
 	
+	// Clear buffer
+    while (io->read_timeout(context, &sump_parameters, 4, 10/portTICK_PERIOD_MS)>0){
+
+	}
+
 	// !(gpio_get_level(0)==0)
 	while (true) {
 		if(io->read_timeout(context, &sump_command, 1, 500/portTICK_PERIOD_MS)) {
@@ -402,7 +413,11 @@ void sump(sump_context_t *context,sump_interface_t *io)
 					} else {
 						INDEX--;
 					}
-					switch (sconfig.channels) {						
+					reply[0]=*(buffer+INDEX) & 0xff;
+					/*					
+					// TDOO, fix this sconfig.channels stuff
+
+					switch (sconfig.channels) {	
 					case 1:
 						reply[0]=*(buffer+INDEX) & 0xff;				
 				        reply[1]=0x00;
@@ -425,8 +440,9 @@ void sump(sump_context_t *context,sump_interface_t *io)
 						//sprintf( reply,"%c%c%c%c", *(buffer+INDEX) & 0xff, (*(buffer+INDEX) & 0xff00)>>8,zero,zero);
 						break;
 					}
+					*/
 					//printf("%s",reply);
-					size = io->write(context, (const char *)reply, 4);
+					size = io->write(context, (const char *)reply, 1);  // WAS 4
 					io->flush(context);
 					sconfig.read_count--;
 				}
@@ -460,11 +476,17 @@ void sump(sump_context_t *context,sump_interface_t *io)
 				reply[4]=0x00;
 				size = io->write(context, (const char *)reply, 5);
 				//sample rate (2MHz)
+				//reply[0]=0x23;								
+				//reply[1]=0x00;
+				//reply[2]=0x1E;
+				//reply[3]=0x84;
+				//reply[4]=0x80;
+			    //sample rate (10kHz)
 				reply[0]=0x23;								
 				reply[1]=0x00;
-				reply[2]=0x1E;
-				reply[3]=0x84;
-				reply[4]=0x80;
+				reply[2]=0x00;
+				reply[3]=0x27;
+				reply[4]=0x10;
 				size = io->write(context, (const char *)reply, 5);
 
 				//number of probes (8)
