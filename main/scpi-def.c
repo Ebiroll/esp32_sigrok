@@ -39,6 +39,69 @@
 #include <string.h>
 #include "scpi/scpi.h"
 #include "scpi-def.h"
+#include <driver/adc.h>
+
+
+#define NUM_SAMPLES 4096
+
+uint16_t analouge_values[NUM_SAMPLES];
+
+
+//-----------------------------------------------------------------------------
+// Read CCOUNT register.
+//-----------------------------------------------------------------------------
+static inline uint32_t get_ccount(void)
+{
+  uint32_t ccount;
+
+  asm volatile ( "rsr     %0, ccount" : "=a" (ccount) );
+  return ccount;
+}
+
+
+uint32_t last_ccount=0;
+static inline uint32_t get_delta(void) {
+
+    uint32_t new_ccount=get_ccount();
+    if (last_ccount<new_ccount) {
+       last_ccount=new_ccount;
+       return(new_ccount-last_ccount);
+    } else {
+        return (0xffffffff-last_ccount + new_ccount);
+    }
+
+}
+
+
+
+int sample_point;
+
+#define COUNT_FOR_SAMPLE 160000
+
+static void sample_thread(void *param) {
+    adc1_config_width(ADC_WIDTH_12Bit);
+    adc1_config_channel_atten(ADC1_CHANNEL_0,ADC_ATTEN_0db);
+    int val;
+    int blink=0;
+
+    uint32_t ccount;
+
+    uint32_t accumulated_ccount=0;
+
+    while (sample_point<NUM_SAMPLES) {
+          while (accumulated_ccount<COUNT_FOR_SAMPLE) {
+              accumulated_ccount+=get_delta();
+          }
+          val = adc1_get_voltage(ADC1_CHANNEL_0);
+          gpio_set_level(GPIO_NUM_17, blink);
+          analouge_values[sample_point++]=val;
+          blink=!blink;
+          accumulated_ccount-=COUNT_FOR_SAMPLE;
+    }
+
+}
+
+//  xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, NULL, 1);
 
 static scpi_result_t DMM_MeasureVoltageDcQ(scpi_t * context) {
     scpi_number_t param1, param2;
