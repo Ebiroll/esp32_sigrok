@@ -481,7 +481,7 @@ he command is to set the vertical range of the amplified waveform.
 200mV~ 1000V   Probe 100X  
 2V~10000V      Probe 1000X 
 */
-    SCPI_ResultFloat(context, 4.0f);
+    SCPI_ResultFloat(context, 0.5f);
 
 
     return SCPI_RES_OK;
@@ -686,12 +686,12 @@ static scpi_result_t wav_data(scpi_t * context) {
 
 
     //#90 0000 1400 1400
-/*
+
     sample_data[0]='1';
     sample_data[1]='4';
     sample_data[2]='0';
     sample_data[3]='0';
-
+/*
     sample_data[4]='1';
     sample_data[5]='4';
     sample_data[6]='0';
@@ -700,34 +700,21 @@ static scpi_result_t wav_data(scpi_t * context) {
 
 #ifdef START_SAMPLE_TASK
 uint8_t* result=get_values();
- for (int i=0;i<1400;i++) {
+ for (int i=4;i<1400;i++) {
      sample_data[i]=*result;
      result++;
  }
 
 #else
 
-    for (int i=0;i<150;i+=2) {
+    int fake=25;
+    for (int i=0;i<1400;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
-       sample_data[i*2]='0';
-       sample_data[i*2+1]='1';
-       sample_data[i*2+2]='2';
-       sample_data[i*2+3]='3';
-    }
-    for (int i=4;i<350;i+=2) {
-        //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
-       sample_data[i*2]='F';
-       sample_data[i*2+1]='F';
-       sample_data[i*2+2]='F';
-       sample_data[i*2+3]='F';
-    }
-
-    for (int i=350;i<700;i+=2) {
-        //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
-       sample_data[i*2]='0' + ((i/2)%9);
-       sample_data[i*2+1]='F';
-       sample_data[i*2+2]='F';
-       sample_data[i*2+3]='7' ;
+       sample_data[i*2]=fake;
+       fake++;
+       if (fake>225) {
+           fake=25;
+       }
     }
 #endif
 

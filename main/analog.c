@@ -23,8 +23,9 @@ uint8_t* get_values() {
 
 int sample_point;
 
-// TODO, use DMA  , adc_set_i2s_data_source
-#define COUNT_FOR_SAMPLE 80
+// TODO, use DMA  , adc_set_i2s_data_source, 
+// Also allow setting parameters from sigrok
+#define COUNT_FOR_SAMPLE 160
 
 // This function can be used to find the true value for V_REF
 void route_adc_ref()
@@ -94,10 +95,10 @@ AV/VD + 4.6/VD = (240 -R) / 25
 <Raw_Byte> = 240 -  25*( A(V)/VD + 4.6/VD) 
 
 */
-#define VD 4.0
+#define VD 0.5
 
 uint8_t voltage_to_RawByte(uint32_t voltage) {
-    uint8_t ret=240 -25*(voltage/(1000.0*VD) +4.6/VD);
+    uint8_t ret=240 - 25*(voltage/(1000.0*VD) +4.6/VD) ;
 
     return(ret);
 }

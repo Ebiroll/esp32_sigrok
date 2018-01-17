@@ -282,6 +282,8 @@ static int processIoListen(sump_context_t *context) {
             /* Close unwanted connection */
             netconn_close(newconn);
             netconn_delete(newconn);
+            // Bugfix?
+            context->io = newconn;
         } else {
             /* connection established */
             iprintf("***SUMP Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));

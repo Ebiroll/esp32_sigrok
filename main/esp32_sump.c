@@ -142,6 +142,8 @@ void high_res_timer(void *para) {
 	}
 
 	if (sconfig.state !=SUMP_STATE_IDLE) {
+		//gpio_set_level(GPIO_NUM_17, 1);
+
 		//static unsigned int go_test=0;
 
 		timer_event_t evt;
@@ -149,7 +151,11 @@ void high_res_timer(void *para) {
 		evt.sample=getSample();
 		//evt.sample=go_test++;
 		xQueueSend( timer_queue, ( void * ) &evt, ( TickType_t ) 0 );
+
+		//gpio_set_level(GPIO_NUM_17, 0);
+
 	}
+
 }
 
 
@@ -167,7 +173,7 @@ static void tim_init(void)
 		printf("!!!!!! Failed to create timer, samp_tim!!!!!\n");
 	}
 														// 1000 microsec.. Send sample each ms 1kHz
-	esp_timer_start_periodic(sample_timer, 100);        // 100 microsec, 10kHz
+	esp_timer_start_periodic(sample_timer, 100);        // 10 microsec, 100kHz
 
 #if 0
 	htim.Instance = TIM4;
@@ -208,7 +214,7 @@ static void tim_set_prescaler(void)
 void sump_init(void)
 {
     buffer=malloc(STATES_LEN*sizeof(uint16_t));
-    timer_queue = xQueueCreate(1000, sizeof(timer_event_t));
+    timer_queue = xQueueCreate(9000, sizeof(timer_event_t));
 	portc_init();
 	tim_init();
 
@@ -234,7 +240,7 @@ static void get_samples(void)
 		config_trigger_value =  sconfig.trigger_values[0];
 		config_trigger_mask = sconfig.trigger_masks[0];
 
-		xQueueReset(timer_queue);
+		
 
 		while(1)
 		{
@@ -404,6 +410,7 @@ void sump(sump_context_t *context,sump_interface_t *io)
 				break;
 			case SUMP_RUN:
 				INDEX=0;
+				xQueueReset(timer_queue);
 				sconfig.state = SUMP_STATE_ARMED;
 				get_samples();
 

@@ -1,8 +1,21 @@
 # Sigrok esp 32 
 
-A SUMP compatible Logical Analyser for the esp32, for use with i.e sigrok
+A SUMP compatible logic analyser for the esp32, for use with i.e sigrok
 https://en.wikipedia.org/wiki/Sigrok
 
+For digital input, an Open bench logic sniffer is emulated. (ols)
+A Rigol DS scope (rigol-ds) is emulated in order to allow sampling of analouge input.
+
+# Analogue
+```
+(ADC1_CHANNEL_6)      //GPIO 34
+```
+
+![uart](analog.png)
+
+Still lots of tuning to do here.
+
+# Pins
 Pins that can be used for logical input on the WROVER board.
 
 ```
@@ -21,20 +34,27 @@ Pins defined  for logical input with the code in this repository over SUMP.
             24,
 ```
 
+Testdata in this example. To get testdata connect i.e pin 17 & 22 and pin 23 & 18
+```
+            17, remote device, square pulse
+            18, 2400 Baud UART with repeated text, "sump"
+```
+
+
 
 If using the WROVER-kit, you can use the JTAG chip to do data aquisition.
-When starting pulseview with logging,  -l 5 it seems that the FTDI-LA drivers were used.
+To get better debuginfo, start pulseview with logging,  -l 5 
+On the WROVER dev kit, it seems that the FTDI-LA drivers are used.
 
 https://sigrok.org/gitweb/?p=libsigrok.git;a=tree;f=src/hardware/ftdi-la
 This allows sampling without a second ESP32 up to 10Mhz.
 
-
-In this code the sump protocol is implemented over serial and tcp/ip. 
-
+In the code the sump protocol is implemented over serial and tcp/ip. 
 
 I found that the terminal program cutecom allowed sending single HEX bytes, this is useful for debugging the implementation of the SUMP protocol.
 
 # Pin mapping
+
 In sigrok the following WROVER-KIT pins are mapped like this.
 ```
 PIN13 = ADBUS0
@@ -84,7 +104,7 @@ When starting the sigrok gui, pulseview, the device was identified and this is h
 [https://raw.githubusercontent.com/Ebiroll/esp32_sigrok/master/sigrok.png ]
 
 # Analysis of UART 2400 Baud
-To get some more test the uart sends the text "sump" on pin 18
+To get some more testdata the uart sends the text "sump" on pin 18
 ```
 static void uartWRITETask(void *inpar) {
   uart_port_t uart_num = UART_NUM_1;    
@@ -118,13 +138,14 @@ Change samplerate 10kHz. Its currently hardcoded to sample at this rate.
 Also you can add more input pins by adding them in,
 uint16_t getSample() &  portc_init(void)
 
+For analog data try the rigol-ds over wifi on port 5555.
+
 # Command line run
+When developing, this is useful.
 sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
 
 
-SCPI over the network works, but only first time after reset.
-Needs debugging.
-The data format for the wav file is also unknown
+SCPI over the network works now.
 
 sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
 
@@ -132,7 +153,7 @@ It is possible tp run sump over network or USB, however libsigrok only supports 
 
 Instead sump over TCP/IP was used for debugging.
 ```
-To use debug output, fix:
+To use debug output, remove #ifdef 0 in:
 sump_debug()
 
 ```
@@ -145,7 +166,7 @@ http://esp-idf.readthedocs.io/en/latest/api-reference/system/esp_timer.html
 
 Trying to  add rigol emulation and emulate sending of analouge and digital waveforms
 
-In directory linux, you can build a test client, it listens to port 5555
+In directory linux, you can build a test client, it also listens to port 5555
 ./test
 
 To try connect 

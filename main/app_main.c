@@ -168,7 +168,7 @@ void send_remote_pulses() {
   rmt_config(&config);
   rmt_driver_install(config.channel, 0, 0);  //  rmt_driver_install(rmt_channel_t channel, size_t rx_buf_size, int rmt_intr_num)
    
-  items[0].duration0 = 30000;  // 30.000 us
+  items[0].duration0 = 30000;  // 30 ms
   items[0].level0 = 1;
   items[0].duration1 = 15000;   // 15 ms
   items[0].level1 = 0;  
