@@ -3,7 +3,7 @@
 A SUMP compatible Logical Analyser for the esp32, for use with i.e sigrok
 https://en.wikipedia.org/wiki/Sigrok
 
-Pins defined for logical input.
+Pins that can be used for logical input on the WROVER board.
 
 ```
             12,
@@ -12,20 +12,29 @@ Pins defined for logical input.
             15,
 ```
 
-The key to using the ESP32 with sigrok was using the WROVER-kit. :-P
-It was not the code in this repository... Accidental success. 
-I knew there was something strange when the code was working on the first try. It is thanks to the JTAG, chips on the WROVER-KIT board that data acquisition was working so well.
+Pins defined  for logical input with the code in this repository over SUMP.
 
-In this code the sump protocol is implemented over USB and tcp/ip. 
+```
+            21,
+            22,
+            23,
+            24,
+```
 
+
+If using the WROVER-kit, you can use the JTAG chip to do data aquisition.
 When starting pulseview with logging,  -l 5 it seems that the FTDI-LA drivers were used.
 
 https://sigrok.org/gitweb/?p=libsigrok.git;a=tree;f=src/hardware/ftdi-la
-For me it solves the problem and allows sampling without a second ESP32 up to 10Mhz.
-
-I found that terminal program cutecom allowed sending single HEX bytes, this is useful for debugging the implementation of the SUMP protocol.
+This allows sampling without a second ESP32 up to 10Mhz.
 
 
+In this code the sump protocol is implemented over serial and tcp/ip. 
+
+
+I found that the terminal program cutecom allowed sending single HEX bytes, this is useful for debugging the implementation of the SUMP protocol.
+
+# Pin mapping
 In sigrok the following WROVER-KIT pins are mapped like this.
 ```
 PIN13 = ADBUS0
@@ -33,7 +42,6 @@ PIN12 = ADBUS1
 PIN15 = ADBUS2
 PIN14 = ADBUS3
 ```
-
 
 THE Jtag interface uses the following pins.
 ```
@@ -44,8 +52,8 @@ THE Jtag interface uses the following pins.
 5 	MTMS / GPIO14 	TMS
 ```
 
-
-Also the following red/green blue led is available on the WROVER kit.
+# Wrover debug pins
+The following red/green/blue led is available on the WROVER kit.
 ```
   RED    gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
   GREEN  gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
@@ -53,17 +61,16 @@ Also the following red/green blue led is available on the WROVER kit.
 	gpio_set_level(GPIO_NUM_0, 0);
 ```
 
-
 After making sure you use the correct Component config → 
 ESP32-specific -> Main XTAL frequency
-A good idea, might be to set these values.
+Another good idea, might be to set these values.
 ```
   Bootloader log verbosity (No output)  --->    
   Compiler options ->  Optimization Level (Release (-Os)) 
 ```
+Otherwise they will interfer with the SUMP protocol.
 
-
-To get some test data, on GPIO_NUM_21 a 30/15 ms pulse is generated with the remote device.
+To get some test data, connect  a 30/15 ms pulse is generated with the remote device on pin 17
 ```
 app_main() {
     ...
@@ -76,7 +83,8 @@ When starting the sigrok gui, pulseview, the device was identified and this is h
 ![sigrok](sigrok.png)
 [https://raw.githubusercontent.com/Ebiroll/esp32_sigrok/master/sigrok.png ]
 
-# Analysis of UART 9600 Baud
+# Analysis of UART 2400 Baud
+To get some more test the uart sends the text "sump" on pin 18
 ```
 static void uartWRITETask(void *inpar) {
   uart_port_t uart_num = UART_NUM_1;    
@@ -94,9 +102,9 @@ static void uartWRITETask(void *inpar) {
 ![uart](uart.png)
 
 # Project status
-Now it is working with sigrock and the latest version of esp-idf.
+Now it is working with sigrok and the latest version of esp-idf.
 
-Perhaps this was helpful.
+Perhaps this bugfix was helpful, but initially the SUMP protocol was not working
 https://github.com/espressif/esp-idf/commit/f482e9e54ce83e249e46f5ee082f6ffb61431339
 
 # Sigrok
@@ -107,7 +115,7 @@ Press Scan for devices,
 If successful select ESP32 with 8 channels.
 Change samplerate 10kHz. Its currently hardcoded to sample at this rate.
 
-Also you can add more sample by adding them in,
+Also you can add more input pins by adding them in,
 uint16_t getSample() &  portc_init(void)
 
 # Command line run
@@ -145,10 +153,12 @@ To try connect
 This will send *IDN? to the instrument
 
 You can also try this 
-./olas-cli -d rigol-ds:conn=tcp-raw/192.168.1.130/5555  -l 5  --show
+./sigrock-cli -d rigol-ds:conn=tcp-raw/192.168.1.130/5555  -l 5  --show
 
 
 https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
+
+# Building sigrok
 
 ```
 To build a debuggable version of sigrok-cli use the CMakeLists.txt file
@@ -164,7 +174,6 @@ To build a debuggable version of sigrok-cli use the CMakeLists.txt file
 To test reading data with sump.
 ./sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
 
-```
 
 
 # Some other SUMP implementations,
@@ -178,7 +187,7 @@ https://github.com/tuxyme/metal-pi/blob/master/analyzer/main.c
 
 https://github.com/gillham/logic_analyzer/blob/master/logic_analyzer.ino
 
-#Rigol and SCPI
+# Rigol and SCPI
 
 TODO, contact this person
 https://github.com/hackrid/pyrigolla/
@@ -192,6 +201,7 @@ https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
 
 
 Data format,
+
 https://rigol.desk.com/customer/en/portal/articles/2269119-how-do-i-format-the-data-returned-from-a-ds1000e-d-series-scope-
 
 https://en.wikipedia.org/wiki/Standard_Commands_for_Programmable_Instruments

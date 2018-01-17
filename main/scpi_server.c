@@ -439,7 +439,7 @@ static void scpi_server_thread(void *arg) {
     vTaskDelete(NULL);
 }
 
-void scpi_server_init(void) {
+void scpi_server_init(TaskHandle_t *pvCreatedTask) {
     //printf("Server thread\n");
     sys_thread_new("SCPI", scpi_server_thread, NULL, 4 * DEFAULT_THREAD_STACKSIZE, SCPI_THREAD_PRIO);
 }

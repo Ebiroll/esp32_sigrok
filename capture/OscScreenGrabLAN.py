@@ -56,7 +56,7 @@ log_running_python_versions()
 
 # Update the next lines for your own default settings:
 path_to_save = "captures/"
-save_format = "PNG"
+save_format = "CSV"
 IP_DS1104Z = "192.168.1.127"
 
 # Rigol/LXI specific constants

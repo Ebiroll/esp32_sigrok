@@ -183,7 +183,7 @@ int main(int argc, char ** argv)
         // cerr << "\t-t SCOPE_TYPE: Oscilloscope type. ds1k" << endl;
         cerr << "\t-s SERNUM: device serial number. Will take first device found if not specified." << endl;
         cerr << "\t-u URL: URL of remote device. Will assume local USB if not specified." << endl;
-        cerr << "\t--port PORTNUM: port number of remote device server. Default is 9393." << endl;
+        cerr << "\t--port PORTNUM: port number of remote device server. Default is 5555." << endl;
         // cerr << "\t--wav-mode=WMODE: Waveform output mode: ascii, csv, hex, fixpoint (binary), float (binary)" << endl;
         // cerr << "\t--wav-path=PATH: Waveform output path and base name." << endl;
         cerr << "\t-v: Verbose output" << endl;

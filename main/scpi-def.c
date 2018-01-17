@@ -39,69 +39,12 @@
 #include <string.h>
 #include "scpi/scpi.h"
 #include "scpi-def.h"
-#include <driver/adc.h>
 
+#define START_SAMPLE_TASK 1
 
-#define NUM_SAMPLES 4096
-
-uint16_t analouge_values[NUM_SAMPLES];
-
-
-//-----------------------------------------------------------------------------
-// Read CCOUNT register.
-//-----------------------------------------------------------------------------
-static inline uint32_t get_ccount(void)
-{
-  uint32_t ccount;
-
-  asm volatile ( "rsr     %0, ccount" : "=a" (ccount) );
-  return ccount;
-}
-
-
-uint32_t last_ccount=0;
-static inline uint32_t get_delta(void) {
-
-    uint32_t new_ccount=get_ccount();
-    if (last_ccount<new_ccount) {
-       last_ccount=new_ccount;
-       return(new_ccount-last_ccount);
-    } else {
-        return (0xffffffff-last_ccount + new_ccount);
-    }
-
-}
-
-
-
-int sample_point;
-
-#define COUNT_FOR_SAMPLE 160000
-
-static void sample_thread(void *param) {
-    adc1_config_width(ADC_WIDTH_12Bit);
-    adc1_config_channel_atten(ADC1_CHANNEL_0,ADC_ATTEN_0db);
-    int val;
-    int blink=0;
-
-    uint32_t ccount;
-
-    uint32_t accumulated_ccount=0;
-
-    while (sample_point<NUM_SAMPLES) {
-          while (accumulated_ccount<COUNT_FOR_SAMPLE) {
-              accumulated_ccount+=get_delta();
-          }
-          val = adc1_get_voltage(ADC1_CHANNEL_0);
-          gpio_set_level(GPIO_NUM_17, blink);
-          analouge_values[sample_point++]=val;
-          blink=!blink;
-          accumulated_ccount-=COUNT_FOR_SAMPLE;
-    }
-
-}
-
-//  xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, NULL, 1);
+#ifdef START_SAMPLE_TASK
+#include "analog.h"
+#endif
 
 static scpi_result_t DMM_MeasureVoltageDcQ(scpi_t * context) {
     scpi_number_t param1, param2;
@@ -690,6 +633,10 @@ command,  or  a  single  acquisition  has  occurred  when  the  Trigger
 mode is  set  to  “Single”.
 */
 times_called=0;
+
+#ifdef START_SAMPLE_TASK
+start_sampling();
+#endif
 return SCPI_RES_OK;
 }
 
@@ -729,13 +676,14 @@ if (times_called>1000) {
 return SCPI_RES_OK;
 }
 
-char sample_data[4096];
+unsigned char sample_data[4096];
 
 static scpi_result_t wav_data(scpi_t * context) {
     const char * data;
     size_t len=1400;
 
     printf("wav_data ");
+
 
     //#90 0000 1400 1400
 /*
@@ -749,6 +697,15 @@ static scpi_result_t wav_data(scpi_t * context) {
     sample_data[6]='0';
     sample_data[7]='0';
 */
+
+#ifdef START_SAMPLE_TASK
+uint8_t* result=get_values();
+ for (int i=0;i<1400;i++) {
+     sample_data[i]=*result;
+     result++;
+ }
+
+#else
 
     for (int i=0;i<150;i+=2) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
@@ -772,7 +729,7 @@ static scpi_result_t wav_data(scpi_t * context) {
        sample_data[i*2+2]='F';
        sample_data[i*2+3]='7' ;
     }
-
+#endif
 
    SCPI_ResultArbitraryBlock(context,sample_data,len);
    return SCPI_RES_OK;

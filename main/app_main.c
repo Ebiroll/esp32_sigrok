@@ -37,13 +37,15 @@ SOFTWARE.
 #include "read_chars.h"
 #include "esp32_sump.h" 
 #include "scpi_server.h"
+#include "analog.h"
 
 #include <driver/rmt.h>
  
 #define STEP_PIN  GPIO_NUM_21
 
-static const char *TAG = "uart";
+static const char *TAG = "sigrok";
 
+TaskHandle_t xHandlingTask;
 
 #define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
 #define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
@@ -111,7 +113,6 @@ static void init_uart()
 
 }
 
-
 // This task only prints what is received on UART1
 static void uartECHOTask(void *inpar) {
   uart_port_t uart_num = UART_NUM_0;                                     //uart port number
@@ -125,18 +126,11 @@ static void uartECHOTask(void *inpar) {
          echoLine[0]='T';
      }
     gpio_set_level(GPIO_NUM_2, level);
-    if (level==1) 
-    {
-        level=0;
-    } else {
-        level=1;
-    }     
-     uart_write_bytes(uart_num, (char *)echoLine, 1);
-     //printf("%c",echoLine[0]);
-     uart_flush(0);
+    level=!level;
+    //uart_write_bytes(uart_num, (char *)echoLine, 1);
+    printf("%c",echoLine[0]);
+    uart_flush(0);
   }
-  //sump_init();
-  //sump_uart();
 }
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
@@ -162,21 +156,21 @@ void send_remote_pulses() {
 
   config.rmt_mode = RMT_MODE_TX;
   config.channel = RMT_CHANNEL_0;
-  config.gpio_num = 17; //STEP_PIN;, we use pin 14 directly, this way no cable is needed.
+  config.gpio_num = 17; //STEP_PIN;, we use pin 17 directly, this way no cable is needed.
   config.mem_block_num = 1;
   config.tx_config.loop_en = 1;
   config.tx_config.carrier_en = 0;
   config.tx_config.idle_output_en = 1;
   config.tx_config.idle_level = RMT_IDLE_LEVEL_LOW;
   config.tx_config.carrier_level = RMT_CARRIER_LEVEL_HIGH;
-  config.clk_div = 80; // 80MHx / 80 = 1MHz 0r 1uS per count
+  config.clk_div = 80; // 80MHz / 80 = 1MHz 0r 1uS per count
  
   rmt_config(&config);
   rmt_driver_install(config.channel, 0, 0);  //  rmt_driver_install(rmt_channel_t channel, size_t rx_buf_size, int rmt_intr_num)
    
   items[0].duration0 = 30000;  // 30.000 us
   items[0].level0 = 1;
-  items[0].duration1 = 30000;   // 15 ms
+  items[0].duration1 = 15000;   // 15 ms
   items[0].level1 = 0;  
 
 }
@@ -189,10 +183,45 @@ static void remoteTask(void *inpar) {
 
 void sump_server_init(void);
 
+
+// Only wait for sample task to finnish
+void test_sample_task(void *param) {
+    unsigned int ulNotifiedValue;
+
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 500 );
+    BaseType_t xResult=0;
+
+      /* Wait to be notified when sampling is complete. */
+
+     while (xResult != pdPASS ) {
+
+        xResult = xTaskNotifyWait( pdFALSE,    /* Don't clear bits on entry. */
+                            ULONG_MAX,        /* Clear all bits on exit. */
+                            &ulNotifiedValue, /* Stores the notified value. */
+                            xMaxBlockTime );
+
+        if( xResult == pdPASS ) {
+            // Task finished
+            printf("Sample task finished\n");
+        }
+     }
+
+    vTaskDelete(NULL);
+}
+
+
+
 void app_main(void)
 {
     nvs_flash_init();
     init_uart();
+
+#if 0
+    xTaskCreatePinnedToCore(&test_sample_task, "test_sample_task", 4096, NULL, 10, &xHandlingTask, 0);
+
+    // Test analog thread
+    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, &xHandlingTask, 20, NULL, 0);
+#endif
 
 #if 1
     tcpip_adapter_init();
@@ -212,7 +241,7 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_wifi_start() );
     ESP_ERROR_CHECK( esp_wifi_connect() );
 
-    scpi_server_init();
+    scpi_server_init(&xHandlingTask);
 #endif
 
     size_t free8start=heap_caps_get_free_size(MALLOC_CAP_8BIT);
@@ -241,21 +270,19 @@ void app_main(void)
 		gpio_set_level(GPIO_NUM_0, 0);
         gpio_set_level(GPIO_NUM_2, 0);
 	    gpio_set_level(GPIO_NUM_4, 0);
-
-	}
 #endif
 
 
     // esp_err_t rmt_write_items(rmt_channel_t channel, rmt_item32_t *rmt_item, int item_num, bool wait_tx_done)
-    //send_remote_pulses();
-    //rmt_write_items(config.channel, items, 1, 0);
+    send_remote_pulses();
+    rmt_write_items(config.channel, items, 1, 0);
 
-    // Not necessary to set this
+    // Not necessary to start this task
     //xTaskCreatePinnedToCore(&remoteTask, "remote", 4096, NULL, 20, NULL, 0);
 
     // To look at test UART data 2400 Baud on pin 18
     init_uart_1();
-    xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 1);
+    xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 0);
 
     sump_init();
     sump_server_init();
