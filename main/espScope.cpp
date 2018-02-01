@@ -13,8 +13,13 @@
 #include "driver/periph_ctrl.h"
 #include "rom/lldesc.h"
 #include "driver/ledc.h"
+#include "soc/rtc.h"
+#include "soc/efuse_reg.h"
+#include "rom/lldesc.h"
 
-#define SAMPLES_COUNT 1000
+
+
+#define SAMPLES_COUNT 4000
 
 const int XCLK = 32;
 const int PCLK = 33;
@@ -29,6 +34,10 @@ const int D6 = 12;
 const int D7 = 4;
 
 #define DEBUG_LOG_ENABLE 1
+
+#define APLL_MIN_FREQ (350000000)
+#define APLL_MAX_FREQ (500000000)
+#define APLL_I2S_MIN_RATE (10675) //in Hz, I2S Clock rate limited by hardware
 
 
 extern "C" void sump_debug(char *str,unsigned int value);
@@ -162,7 +171,7 @@ class I2C_AdcSampler
     unsigned int stop_counter=0;
     stopSignal = true;
     while(stopSignal && stop_counter++<100000);
-    DEBUG_PRINTLN("Sampling stopped");
+    DEBUG_PRINTLN_DATA("Sampling stopped",stop_counter);
   }
 
   void oneFrame()
@@ -252,6 +261,35 @@ bool I2C_AdcSampler::init(const uint32_t frameBytes, const int XCLK, const int P
   dmaBufferInit(frameBytes * 2);  //two bytes per dword packing
   return true;
 }
+
+static const int apll_predefine[][6] = {
+    {16, 11025, 38,  80,  5, 31},
+    {16, 16000, 147, 107, 5, 21},
+    {16, 22050, 130, 152, 5, 15},
+    {16, 32000, 129, 212, 5, 10},
+    {16, 44100, 15,  8,   5, 6},
+    {16, 48000, 136, 212, 5, 6},
+    {16, 96000, 143, 212, 5, 2},
+    {0,  0,     0,   0,   0, 0}
+};
+
+static float i2s_get_apll_real_rate(int bits_per_sample, int sdm0, int sdm1, int sdm2, int odir)
+{
+    int f_xtal = (int)rtc_clk_xtal_freq_get() * 1000000;
+    uint32_t is_rev0 = (GET_PERI_REG_BITS2(EFUSE_BLK0_RDATA3_REG, 1, 15) == 0);
+    if (is_rev0) {
+        sdm0 = 0;
+        sdm1 = 0;
+    }
+    float fout = f_xtal * (sdm2 + sdm1 / 256.0f + sdm0 / 65536.0f + 4);
+    if (fout < APLL_MIN_FREQ || fout > APLL_MAX_FREQ) {
+        return 9999999;
+    }
+    float fpll = fout / (2 * (odir+2)); //== fi2s (N=1, b=0, a=1)
+    return fpll/(8*4*bits_per_sample); //fbck = fi2s/bck_div
+}
+
+
 /**
  * @brief     APLL calculate function, was described by following:
  *            APLL Output frequency is given by the formula:
@@ -285,7 +323,6 @@ bool I2C_AdcSampler::init(const uint32_t frameBytes, const int XCLK, const int P
  *
  * @return     ESP_FAIL or ESP_OK
  */
-#if 0
 static esp_err_t i2s_apll_calculate(int rate, int bits_per_sample, int *sdm0, int *sdm1, int *sdm2, int *odir)
 {
     int _odir, _sdm0, _sdm1, _sdm2, i;
@@ -354,7 +391,6 @@ static esp_err_t i2s_apll_calculate(int rate, int bits_per_sample, int *sdm0, in
     
     return ESP_OK;
 }
-#endif
 
 bool I2C_AdcSampler::i2sInit(const int PCLK, const int D0, const int D1, const int D2, const int D3, const int D4, const int D5, const int D6, const int D7)
 {    
@@ -410,6 +446,10 @@ bool I2C_AdcSampler::i2sInit(const int PCLK, const int D0, const int D1, const i
     // Toggle some reset bits in LC_CONF register
     // Toggle some reset bits in CONF register
     i2sConfReset();
+
+    rtc_clk_apll_enable(0, 0, 0, 0, 0);
+
+
     // Enable slave mode (sampling clock is external)
     I2S0.conf.rx_slave_mod = 0; // olas 1
     // Enable parallel mode
@@ -422,6 +462,16 @@ bool I2C_AdcSampler::i2sInit(const int PCLK, const int D0, const int D1, const i
     I2S0.clkm_conf.clkm_div_num = 2;
     I2S0.clkm_conf.clka_en = 1;  // OLAS, Whats the rate... use_appl
 
+
+    int sdm0, sdm1, sdm2, odir;
+    DEBUG_PRINTLN("APPL");
+    int rate=96000;
+    int bits=16;
+    if (i2s_apll_calculate(rate, bits, &sdm0, &sdm1, &sdm2, &odir) == ESP_OK) {
+        rtc_clk_apll_enable(1, sdm0, sdm1, sdm2, odir);
+    }
+ 
+
     // FIFO will sink data to DMA
     I2S0.fifo_conf.dscr_en = 1;
     // FIFO configuration
@@ -429,6 +479,12 @@ bool I2C_AdcSampler::i2sInit(const int PCLK, const int D0, const int D1, const i
     I2S0.fifo_conf.rx_fifo_mod = SM_0A0B_0C0D;  //pack two bytes in one UINT32
     I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
     I2S0.conf_chan.rx_chan_mod = 1;
+
+    // olas
+    I2S0.clkm_conf.clkm_div_a = 1;
+    I2S0.sample_rate_conf.tx_bck_div_num = 8;
+    I2S0.sample_rate_conf.rx_bck_div_num = 8;
+
     // Clear flags which are used in I2S serial mode
     I2S0.sample_rate_conf.rx_bits_mod = 0;
     I2S0.conf.rx_right_first = 0;
