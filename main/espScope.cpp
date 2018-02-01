@@ -438,7 +438,7 @@ bool I2C_AdcSampler::i2sInit(const int PCLK, const int D0, const int D1, const i
     gpio_matrix_in(0x38, I2S0I_V_SYNC_IDX, false);
     gpio_matrix_in(0x38, I2S0I_H_SYNC_IDX, false);  //0x30 sends 0, 0x38 sends 1
     gpio_matrix_in(0x38, I2S0I_H_ENABLE_IDX, false);
-    gpio_matrix_in(0x38, I2S0I_WS_IN_IDX, false); // olas PCLK
+    gpio_matrix_in(PCLK, I2S0I_WS_IN_IDX, false); // olas PCLK
 
     // Enable and configure I2S peripheral
     periph_module_enable(PERIPH_I2S0_MODULE);
@@ -455,22 +455,26 @@ bool I2C_AdcSampler::i2sInit(const int PCLK, const int D0, const int D1, const i
     // Enable parallel mode
     I2S0.conf2.lcd_en = 1;
     // Use HSYNC/VSYNC/HREF to control sampling
-    I2S0.conf2.camera_en = 0; // olas was 1
+    I2S0.conf2.camera_en = 1; // olas was 1
     // Configure clock divider
     I2S0.clkm_conf.clkm_div_a = 1;
     I2S0.clkm_conf.clkm_div_b = 0;
     I2S0.clkm_conf.clkm_div_num = 2;
-    I2S0.clkm_conf.clka_en = 1;  // OLAS, Whats the rate... use_appl
+    I2S0.clkm_conf.clka_en = 1;  // OLAS,  use_appl
 
 
     int sdm0, sdm1, sdm2, odir;
-    DEBUG_PRINTLN("APPL");
+    DEBUG_PRINTLN("APLL");
     int rate=96000;
     int bits=16;
     if (i2s_apll_calculate(rate, bits, &sdm0, &sdm1, &sdm2, &odir) == ESP_OK) {
         rtc_clk_apll_enable(1, sdm0, sdm1, sdm2, odir);
     }
  
+    // apll (( 50Mhz )) Output on pin 0
+    rtc_clk_apll_enable(true, 0, 0, 6, 2);
+    PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0_CLK_OUT1);
+    REG_WRITE(PIN_CTRL, 6);
 
     // FIFO will sink data to DMA
     I2S0.fifo_conf.dscr_en = 1;
