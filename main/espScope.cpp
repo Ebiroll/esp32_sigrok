@@ -465,14 +465,14 @@ bool I2C_AdcSampler::i2sInit(const int PCLK, const int D0, const int D1, const i
 
     int sdm0, sdm1, sdm2, odir;
     DEBUG_PRINTLN("APLL");
-    int rate=96000;
-    int bits=16;
+    int rate=22050;
+    int bits=8;
     if (i2s_apll_calculate(rate, bits, &sdm0, &sdm1, &sdm2, &odir) == ESP_OK) {
         rtc_clk_apll_enable(1, sdm0, sdm1, sdm2, odir);
     }
  
     // apll (( 50Mhz )) Output on pin 0
-    rtc_clk_apll_enable(true, 0, 0, 6, 2);
+    //rtc_clk_apll_enable(true, 0, 0, 6, 2);
     PIN_FUNC_SELECT(PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0_CLK_OUT1);
     REG_WRITE(PIN_CTRL, 6);
 

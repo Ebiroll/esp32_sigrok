@@ -141,24 +141,44 @@ uint16_t getSample() &  portc_init(void)
 For analog data try the rigol-ds over wifi on port 5555.
 
 # Command line run
-When developing, this is useful.
-sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
+When developing, this is useful and repeatable
 
+
+sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
+sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
 
 SCPI over the network works now.
 
 sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
 
-It is possible tp run sump over network or USB, however libsigrok only supports SUMP over serial.
+It is possible tp run sump over network or USB, however ols driver only supports SUMP over serial.
+To use SUMP over network you must use PIPISTRELLO p-ols driver.
 
-Instead sump over TCP/IP was used for debugging.
+
+To debug this use printf for debugging
 ```
-To use debug output, remove #ifdef 0 in:
+void sump_debug(char *str,unsigned int value) {
+    printf("0x%X\n",value);   
+}
+```
+screen /dev/ttyUSB1 115200
+sigrok-cli -d p-ols:conn=tcp-raw/192.168.1.130/5566  -l 5 --scan
+
+
+
+To debug SUMP over serial, then use  TCP/IP for debugging.
+```
+To use debug output, remove #if 0 in:
 sump_debug()
 
 ```
 
-nc 192.168.1.130 5565
+nc 192.168.1.130 5566
+This port is also used for the SUMP protocol over TCP/IP
+If you use the Pipistrello OLS (p-ols) then you can use this
+sigrok-cli -d p-ols:conn=tcp-raw/192.168.1.130/5566  -l 5 --scan
+I never got SUMP over TCP/IP to work.
+
 
 For data aquisition High resolution timer is used.
 http://esp-idf.readthedocs.io/en/latest/api-reference/system/esp_timer.html
