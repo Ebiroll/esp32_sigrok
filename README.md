@@ -127,13 +127,37 @@ Now it is working with sigrok and the latest version of esp-idf.
 Perhaps this bugfix was helpful, but initially the SUMP protocol was not working
 https://github.com/espressif/esp-idf/commit/f482e9e54ce83e249e46f5ee082f6ffb61431339
 
+
+If you test repeatedly with 
+```
+sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --scan
+sigrok-cli -d rigol-ds:conn=tcp-raw/192.168.1.130/5555  -l 5 --scan
+```
+You will notice it works 9/10 times. 
+
+To get more stable performance try removing the driver you dont plan to use
+```
+    //sump_server_init();
+    sump_uart();
+```
+Further development of ESP32 as a scope will be carried out here,
+https://github.com/Ebiroll/qemu_esp32/tree/master/examples/38_wifiscope
+
+
 # Sigrok
 In pulseview
+```
 Chose driver, Open bench Logic sniffer (ols)
 Choose the interface, i.e./dev/ttyUSB0
 Press Scan for devices,
 If successful select ESP32 with 8 channels.
 Change samplerate 10kHz. Its currently hardcoded to sample at this rate.
+```
+   I did some experimental aquisition with parallell i2s aquisition in espScope.c
+	 The idea was to to route out the audio PLL signal and use as PCLK input
+   Also the HSYNC and VSYNC siglnals must be HIGH for DMA sampling to work
+   However, I never got this to work. Probably some other clock signal is missing.
+
 
 Also you can add more input pins by adding them in,
 uint16_t getSample() &  portc_init(void)
@@ -143,24 +167,29 @@ For analog data try the rigol-ds over wifi on port 5555.
 # Command line run
 When developing, this is useful and repeatable
 
-
+```
 sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
 sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
+sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --show
+```
 
-SCPI over the network works now.
+SCPI over the network also works now.
 
-sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
+    sigrok-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5 --scan
 
 It is possible tp run sump over network or USB, however ols driver only supports SUMP over serial.
-To use SUMP over network you must use PIPISTRELLO p-ols driver.
+To use SUMP over network you must find some other program.
+I tried the PIPISTRELLO p-ols driver. This is however his did not work.
 
 
 To debug this use printf for debugging
 ```
 void sump_debug(char *str,unsigned int value) {
-    printf("0x%X\n",value);   
+    printf("%s 0x%X\n",str,value);   
 }
 ```
+Remove call to init_uart
+//init_uart();
 screen /dev/ttyUSB1 115200
 sigrok-cli -d p-ols:conn=tcp-raw/192.168.1.130/5566  -l 5 --scan
 

@@ -14,18 +14,20 @@
 
 uint8_t analouge_values[NUM_SAMPLES];
 
-uint8_t* get_values() {
-
-    return analouge_values;
-};
-
-
+int analouge_in_values[NUM_SAMPLES];
 
 int sample_point;
 
+
+
+
+
 // TODO, use DMA  , adc_set_i2s_data_source, 
 // Also allow setting parameters from sigrok
-#define COUNT_FOR_SAMPLE 160
+
+// A complete sample loop takes about 8000 cycles, will not go faster
+#define COUNT_FOR_SAMPLE 8000*10
+
 
 // This function can be used to find the true value for V_REF
 void route_adc_ref()
@@ -103,6 +105,21 @@ uint8_t voltage_to_RawByte(uint32_t voltage) {
     return(ret);
 }
 
+uint8_t* get_values() {
+    esp_adc_cal_characteristics_t characteristics;
+    esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
+
+    sample_point=0;
+    for(int i=0;i<NUM_SAMPLES;i++) {
+        uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
+        analouge_values[sample_point]=voltage_to_RawByte(mv);
+        sample_point++;
+    }
+
+    sample_point=0;
+    return analouge_values;
+};
+
 
 
 void sample_thread(void *param) {
@@ -136,11 +153,13 @@ void sample_thread(void *param) {
     sample_point=0;
     while (sample_point<NUM_SAMPLES) {
         while (accumulated_ccount<COUNT_FOR_SAMPLE) {
+            vTaskDelay(1 / portTICK_PERIOD_MS);
             accumulated_ccount+=get_delta();
         }
-        voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
+        voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+        //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
         gpio_set_level(GPIO_NUM_17, blink);
-        analouge_values[sample_point++]=voltage_to_RawByte(voltage);
+        analouge_in_values[sample_point++]=voltage;
         blink=!blink;
         accumulated_ccount-=COUNT_FOR_SAMPLE;
     }
@@ -159,7 +178,7 @@ void sample_thread(void *param) {
 
 
 void start_sampling() {
-    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, NULL, 1);
+    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, 1);
 }
 
 bool samples_finnished() {

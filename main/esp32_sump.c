@@ -30,6 +30,8 @@
 #include "soc/timer_group_struct.h"
 #include "driver/periph_ctrl.h"
 #include "driver/timer.h"
+#include "soc/i2s_reg.h"
+#include "soc/i2s_struct.h"
 
 #define STATES_LEN 8192
 
@@ -57,6 +59,7 @@ typedef struct {
 
 xQueueHandle timer_queue;
 
+void sump_debug(char *str,unsigned int value);
 
 
 static int level=1;
@@ -78,6 +81,7 @@ uint16_t getSample() {
 			// ||
 			//(gpio_get_level(16) << 4));
 }
+
 
 static void portc_init(void)
 {
@@ -210,24 +214,57 @@ static void tim_set_prescaler(void)
 #endif
 }
 #endif
+extern void setup_adcSampler(void);
+
 
 void sump_init(void)
 {
     buffer=malloc(STATES_LEN*sizeof(uint16_t));
     timer_queue = xQueueCreate(9000, sizeof(timer_event_t));
 	portc_init();
+	//setup_adcSampler();
 	tim_init();
 
 	sconfig.read_count=100;
 }
+
+extern unsigned char* get_dma_samples(); 
+extern uint32_t  get_frame_length();
 
 static void get_samples(void)
 {
 	uint32_t config_state;
 	config_state = sconfig.state;
 
+
+	sump_debug("get_samples=",1);
 	/* Lock Kernel for logic analyzer */
 	//chSysLock();
+#if 0
+	// Experimental aquisition with parallell i2s aquisition
+    static unsigned int go_test=0;
+
+	unsigned char* data;
+	uint32_t ix;
+	for (int y=0;y<3;y++) {
+		data=get_dma_samples();
+		uint32_t length=get_frame_length();
+		sump_debug("get_length=",length);
+		ix=0;
+		unsigned char test=0;
+		while(ix<3000) { 
+			timer_event_t evt;
+			evt.sample=*data;
+			//evt.sample=1; // test++;
+			data++;
+			ix++;
+			//evt.sample=go_test++;
+			xQueueSend( timer_queue, ( void * ) &evt, ( TickType_t ) 0 );
+		}
+	}
+
+	sump_debug("config_state=",config_state);
+#endif
 
 	//gpio_set_level(GPIO_NUM_2, 1);
 	//HAL_TIM_Base_Start(&htim);
@@ -245,14 +282,21 @@ static void get_samples(void)
 		while(1)
 		{
 			// Wait for timer
-			timer_event_t evt;
+			timer_event_t        evt;
             xQueueReceive(timer_queue, &evt, portMAX_DELAY);
 
 			*(buffer+INDEX) = evt.sample;
+			//sump_debug("val=",evt.sample);
+
+			//if (INDEX>8700) {
+			//	config_state = SUMP_STATE_TRIGGED;
+			//	break;
+			//}
 			//*(buffer+INDEX) = GPIOC->IDR;
 			//TIM4->SR &= ~TIM_SR_UIF;  //clear overflow flag
 			if ( !((*(buffer+INDEX) ^ config_trigger_value) & config_trigger_mask) ) {
 				config_state = SUMP_STATE_TRIGGED;
+				sump_debug("trig=",INDEX);
 				break;
 			}
 			INDEX++;
@@ -266,7 +310,7 @@ static void get_samples(void)
 
 		while(config_delay_count > 0)
 		{
-			timer_event_t evt;
+			timer_event_t        evt;
             xQueueReceive(timer_queue, &evt, portMAX_DELAY);
 
 			*(buffer+INDEX) = evt.sample;
@@ -369,7 +413,6 @@ sump_interface_t uart_interface = {
 };
 
 
-void sump_debug(char *str,unsigned int value);
 
 
 void sump(sump_context_t *context,sump_interface_t *io)

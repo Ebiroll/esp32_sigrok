@@ -134,6 +134,7 @@ int SUMP_Flush(sump_context_t * context) {
 
 
 void sump_debug(char *str,unsigned int value) {
+    //printf("%s 0x%X\n",str,value);   
 #if 0
     strcpy(&SUMP_outputBuffer[SUMP_outputBuffer_idx], str);
     SUMP_outputBuffer_idx +=  strlen(str);
@@ -168,17 +169,23 @@ int SUMP_read_timeout(sump_context_t * context, char * data,unsigned int len, si
 
 //unsigned int SUMP_inputBuffer_idx = 0;
 //unsigned int SUMP_inputBuffer_size = 0;
-
     if (SUMP_inputBuffer_idx!=SUMP_inputBuffer_size) {
         int tocopy=len;
         while (tocopy-->0 && SUMP_inputBuffer_idx<SUMP_inputBuffer_size) {
             *data=SUMP_inputBuffer[SUMP_inputBuffer_idx];
             SUMP_inputBuffer_idx++;
         }
+        SUMP_inputBuffer_idx-=len;
         return len;
     }
 
+
+
+    //printf("Waiting for server\n");
+
     waitServer(context, &evt);
+    //printf("Waited for server\n");
+
 
     if (evt.cmd == SUMP_MSG_TIMEOUT) { /* timeout */
         //SUMP_Input(&SUMP_context, NULL, 0);
@@ -190,7 +197,7 @@ int SUMP_read_timeout(sump_context_t * context, char * data,unsigned int len, si
     }
 
     if ((context->io != NULL) && (evt.cmd == SUMP_MSG_IO)) {
-        processIo(context,data,len);
+        return (processIo(context,data,len));
     }
 
 
@@ -230,7 +237,7 @@ void SUMP_netconn_callback(struct netconn * conn, enum netconn_evt evt, u16_t le
     queue_event_t msg;
     (void) len;
 
-    //printf("SUMP_netconn_callback\n");
+    printf("SUMP_netconn_callback\n");
 
     if (evt == NETCONN_EVT_RCVPLUS) {
         msg.cmd = SUMP_MSG_TEST;
@@ -248,7 +255,7 @@ static struct netconn * createSumpServer(int port) {
     struct netconn * conn;
     err_t err;
 
-    iprintf("creating sump server: %d\n",port);
+    printf("creating sump server: %d\n",port);
 
     conn = netconn_new_with_callback(NETCONN_TCP, SUMP_netconn_callback);
     if (conn == NULL) {
@@ -268,8 +275,8 @@ static struct netconn * createSumpServer(int port) {
 }
 
 static void waitServer(sump_context_t* context, queue_event_t * evt) {
-    /* 5s timeout */
-    if (xQueueReceive(context->evtQueue, evt, 5000 * portTICK_RATE_MS) != pdPASS) {
+    /* 0.5 s timeout */
+    if (xQueueReceive(context->evtQueue, evt, 500 * portTICK_RATE_MS) != pdPASS) {
         evt->cmd = SUMP_MSG_TIMEOUT;
     }
 }
@@ -282,8 +289,6 @@ static int processIoListen(sump_context_t *context) {
             /* Close unwanted connection */
             netconn_close(newconn);
             netconn_delete(newconn);
-            // Bugfix?
-            context->io = newconn;
         } else {
             /* connection established */
             iprintf("***SUMP Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));
@@ -363,6 +368,7 @@ static void sump_server_thread(void *arg) {
     context.evtQueue = xQueueCreate(10, sizeof (queue_event_t));
     context.io_listen = createSumpServer(SUMP_PORT);
 
+
     while (1) {
         sump(&context,&sump_network_interface);
     }
@@ -371,6 +377,6 @@ static void sump_server_thread(void *arg) {
 }
 
 void sump_server_init(void) {
-    //printf("Server thread\n");
-    sys_thread_new("SUMP", sump_server_thread, NULL, 4 * DEFAULT_THREAD_STACKSIZE, SUMP_THREAD_PRIO);
+    printf("Server thread\n");
+    sys_thread_new("SUMP", sump_server_thread, NULL, 2 * 4096, SUMP_THREAD_PRIO);
 }

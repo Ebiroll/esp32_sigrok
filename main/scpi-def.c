@@ -442,7 +442,7 @@ Query returns
 static scpi_result_t time_scale(scpi_t * context) {
 
     //SCPI_ResultFloat(context, 2.0f);
-    SCPI_ResultMnemonic(context, "1e-6");
+    SCPI_ResultMnemonic(context, "10e-3");
 
     //SCPI_ResultText(context, "1e-6");
     //SCPI_ResultFloat(context, 2.0f);
@@ -682,9 +682,10 @@ static scpi_result_t wav_data(scpi_t * context) {
     const char * data;
     size_t len=1400;
 
-    printf("wav_data ");
-
-
+    //printf("wav_data ");
+#ifdef START_SAMPLE_TASK
+    samples_finnished();
+#endif
     //#90 0000 1400 1400
 
     sample_data[0]='1';
@@ -710,7 +711,7 @@ uint8_t* result=get_values();
     int fake=25;
     for (int i=0;i<1400;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
-       sample_data[i*2]=fake;
+       sample_data[i]=fake;
        fake++;
        if (fake>225) {
            fake=25;

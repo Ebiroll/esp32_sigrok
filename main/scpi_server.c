@@ -267,12 +267,13 @@ static int processIoListen(user_data_t * user_data) {
 
     if (netconn_accept(user_data->io_listen, &newconn) == ERR_OK) {
         if (user_data->io) {
-            /* Close unwanted connection */
+            /* Close previous unwanted connection */
+            printf("***Connection already established, closing");
             netconn_close(newconn);
-            netconn_delete(newconn);
+            netconn_delete(newconn);            
         } else {
             /* connection established */
-            iprintf("***Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));
+            //iprintf("***Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));
             user_data->io = newconn;
         }
     }
@@ -285,6 +286,7 @@ static int processSrqIoListen(user_data_t * user_data) {
 
     if (netconn_accept(user_data->control_io_listen, &newconn) == ERR_OK) {
         if (user_data->control_io) {
+            printf("***Control connection already established, closing");
             netconn_close(newconn);
             netconn_delete(newconn);
         } else {
@@ -303,7 +305,7 @@ static void closeIo(user_data_t * user_data) {
     netconn_delete(user_data->io);
     user_data->io = NULL;
     SCPI_outputBuffer_idx=0;
-    iprintf("***Connection closed\r\n");
+    //iprintf("***Connection closed\r\n");
 }
 
 static void closeSrqIo(user_data_t * user_data) {
@@ -311,7 +313,7 @@ static void closeSrqIo(user_data_t * user_data) {
     netconn_close(user_data->control_io);
     netconn_delete(user_data->control_io);
     user_data->control_io = NULL;
-    iprintf("***Control Connection closed\r\n");
+    //iprintf("***Control Connection closed\r\n");
 }
 
 static int processIo(user_data_t * user_data) {

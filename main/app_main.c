@@ -38,9 +38,11 @@ SOFTWARE.
 #include "esp32_sump.h" 
 #include "scpi_server.h"
 #include "analog.h"
-
 #include <driver/rmt.h>
- 
+#include "driver/i2s.h"
+#include "driver/adc.h"
+
+
 #define STEP_PIN  GPIO_NUM_21
 
 static const char *TAG = "sigrok";
@@ -209,7 +211,7 @@ void test_sample_task(void *param) {
     vTaskDelete(NULL);
 }
 
-
+void example_i2s_adc_dac(void*arg);
 
 void app_main(void)
 {
@@ -246,8 +248,8 @@ void app_main(void)
 
     size_t free8start=heap_caps_get_free_size(MALLOC_CAP_8BIT);
     size_t free32start=heap_caps_get_free_size(MALLOC_CAP_32BIT);
-    ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
-    printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
+    //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
+    //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
     gpio_set_direction(GPIO_NUM_17, GPIO_MODE_OUTPUT);
     //gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
@@ -273,39 +275,22 @@ void app_main(void)
 #endif
 
 
-    // esp_err_t rmt_write_items(rmt_channel_t channel, rmt_item32_t *rmt_item, int item_num, bool wait_tx_done)
     send_remote_pulses();
     rmt_write_items(config.channel, items, 1, 0);
 
-    // Not necessary to start this task
-    //xTaskCreatePinnedToCore(&remoteTask, "remote", 4096, NULL, 20, NULL, 0);
 
     // To look at test UART data 2400 Baud on pin 18
     init_uart_1();
     xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 0);
+
+    // Analouge out, however this interferes with analogue in
+    //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
 
     sump_init();
     sump_server_init();
     sump_uart();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
-#if 0
-    int test=0;
-    for(;;) 
-    {
-        //int *GPIO_STRAP_TEST=(int *)0x3ff44038;
-        //printf( "GPIO STRAP REG=%08X\n", *GPIO_STRAP_TEST);
-
-        int *GPIO_IN_REG_TEST=(int *)0x3ff4403C;
-        if (test!=*GPIO_IN_REG_TEST) {
-            test=*GPIO_IN_REG_TEST;
-            printf( "GPIO_IN_REG=%08X\n", *GPIO_IN_REG_TEST);
-
-        }
-
-        //vTaskDelay(200 / portTICK_PERIOD_MS);
-    }
-#endif
-
+    vTaskDelete(NULL);
 
 }
