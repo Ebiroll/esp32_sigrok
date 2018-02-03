@@ -243,7 +243,7 @@ void app_main(void)
     ESP_ERROR_CHECK( esp_wifi_start() );
     ESP_ERROR_CHECK( esp_wifi_connect() );
 
-    scpi_server_init(&xHandlingTask);
+  
 #endif
 
     size_t free8start=heap_caps_get_free_size(MALLOC_CAP_8BIT);
@@ -286,6 +286,7 @@ void app_main(void)
     // Analouge out, however this interferes with analogue in
     //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
 
+    scpi_server_init(&xHandlingTask);
     sump_init();
     sump_server_init();
     sump_uart();

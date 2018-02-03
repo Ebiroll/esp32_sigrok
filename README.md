@@ -133,13 +133,33 @@ If you test repeatedly with
 sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --scan
 sigrok-cli -d rigol-ds:conn=tcp-raw/192.168.1.130/5555  -l 5 --scan
 ```
-You will notice it works 9/10 times. 
+With my version of sigrok and esp-idf rigol-ds will  work 9/10 times. 
 
-To get more stable performance try removing the driver you dont plan to use
+To get more stable performance try removing the driver you dont plan to use in app_main()
+
+For analog data with rigol driver
 ```
+    //init_uart();
+
+    scpi_server_init(&xHandlingTask);
+    //sump_init();
+    //sump_server_init();
+    //sump_uart();
+```
+
+For digital data with ols (sump) driver
+```
+    init_uart();
+
+    //scpi_server_init(&xHandlingTask);
+    sump_init();
     //sump_server_init();
     sump_uart();
 ```
+  sump_server_init(); is used for SUMP data on port 5566 and debugging
+ 
+
+
 Further development of ESP32 as a scope will be carried out here,
 https://github.com/Ebiroll/qemu_esp32/tree/master/examples/38_wifiscope
 

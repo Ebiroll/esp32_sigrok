@@ -102,6 +102,7 @@ unsigned int SCPI_outputBuffer_idx = 0;
 size_t SCPI_Write(scpi_t * context, const char * data, size_t len) {
 
     if ((SCPI_outputBuffer_idx + len) > (SCPI_OUPUT_BUFFER_SIZE - 1)) {
+        printf("SCPI_Write , space limited");
         len = (SCPI_OUPUT_BUFFER_SIZE - 1) - SCPI_outputBuffer_idx; /* limit length to left over space */
         /* apparently there is no mechanism to cope with buffers that are too small */
     }
@@ -269,8 +270,9 @@ static int processIoListen(user_data_t * user_data) {
         if (user_data->io) {
             /* Close previous unwanted connection */
             printf("***Connection already established, closing");
-            netconn_close(newconn);
-            netconn_delete(newconn);            
+            netconn_close(user_data->io);
+            netconn_delete(user_data->io); 
+            user_data->io = newconn;           
         } else {
             /* connection established */
             //iprintf("***Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));
@@ -287,8 +289,8 @@ static int processSrqIoListen(user_data_t * user_data) {
     if (netconn_accept(user_data->control_io_listen, &newconn) == ERR_OK) {
         if (user_data->control_io) {
             printf("***Control connection already established, closing");
-            netconn_close(newconn);
-            netconn_delete(newconn);
+            netconn_close(user_data->control_io);
+            netconn_delete(user_data->control_io);
         } else {
             /* control connection established */
             iprintf("***Control Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));
