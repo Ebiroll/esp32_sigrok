@@ -48,6 +48,7 @@ include_directories(
 /usr/lib/glib-2.0/include
 /usr/include/libusb-1.0/
 libsigrok/src/
+/usr/include/tirpc
 libsigrok
 libsigrok/include/libsigrok/
 )
@@ -83,11 +84,13 @@ libsigrok/src/input/binary.c
 libsigrok/src/input/chronovu_la8.c
 libsigrok/src/input/csv.c
 libsigrok/src/input/input.c
+libsigrok/src/input/logicport.c
 libsigrok/src/input/raw_analog.c
 libsigrok/src/input/trace32_ad.c
 libsigrok/src/input/wav.c
 libsigrok/src/input/vcd.c
-libsigrok/src/scpi/helpers.c
+libsigrok/src/input/null.c
+#libsigrok/src/scpi/helpers.c
 libsigrok/src/scpi/scpi.c
 #libsigrok/src/scpi/scpi_libgpib.c
 libsigrok/src/scpi/scpi_serial.c
@@ -109,6 +112,7 @@ libsigrok/src/output/output.c
 libsigrok/src/output/srzip.c
 libsigrok/src/output/wav.c
 libsigrok/src/output/vcd.c
+libsigrok/src/output/null.c
 libsigrok/src/modbus/modbus.c
 libsigrok/src/modbus/modbus_serial_rtu.c
 libsigrok/src/driver_list_start.c
@@ -116,6 +120,8 @@ libsigrok/src/hardware/openbench-logic-sniffer/api.c
 libsigrok/src/hardware/openbench-logic-sniffer/protocol.c
 libsigrok/src/hardware/rigol-ds/api.c
 libsigrok/src/hardware/rigol-ds/protocol.c
+#libsigrok/src/hardware/pipistrello-ols/api.c
+#libsigrok/src/hardware/pipistrello-ols/protocol.c
 libsigrok/src/driver_list_stop.c
 )
 
@@ -167,7 +173,7 @@ ${cli_SOURCES}
 ${sigrok_SOURCES}
 )
 
-target_link_libraries(olas-cli rt pthread usb-1.0 serialport glib-2.0 m zip)
+target_link_libraries(olas-cli rt tirpc pthread usb-1.0 serialport glib-2.0 m zip)
 
 
 
