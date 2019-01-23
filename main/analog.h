@@ -10,6 +10,8 @@
 
 uint8_t* get_values();
 
+int* get_sample_values();
+
 
 // Param is task handle of task to notify
 void sample_thread(void *param);

@@ -105,6 +105,23 @@ uint8_t voltage_to_RawByte(uint32_t voltage) {
     return(ret);
 }
 
+int* get_sample_values() {
+    esp_adc_cal_characteristics_t characteristics;
+    esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
+
+
+    sample_point=0;
+    for(int i=0;i<NUM_SAMPLES;i++) {
+        uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
+        analouge_in_values[sample_point]=mv;
+        sample_point++;
+    }
+
+    sample_point=0;
+    return analouge_in_values;
+}
+
+
 uint8_t* get_values() {
     esp_adc_cal_characteristics_t characteristics;
     esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);

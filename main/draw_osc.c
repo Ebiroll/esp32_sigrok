@@ -1,6 +1,3 @@
-#if CONFIG_EXAMPLE_USE_TFT
-
-
 #include <time.h>
 #include <errno.h>
 #include <sys/fcntl.h>
@@ -13,6 +10,11 @@
 #include "driver/gpio.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"
+
+
+#if  CONFIG_EXAMPLE_USE_TFT
+
+
 #include "tftspi.h"
 #include "tft.h"
 #include "analog.h"
@@ -21,19 +23,26 @@
 
 const int LCD_WIDTH = 320;
 const int LCD_HEIGHT = 240;
+const int DOTS_DIV = 30;
 
-#define BLACK           0x0000
-#define RED             0xF800
-#define CYAN            0x07FF
-#define YELLOW          0xFFE0 
-#define WHITE           0xFFFF
-#define GREY            0x7BEF
+#define BLACK (color_t){ 00, 00, 00 }
+#define GREY (color_t){ 70, 70, 80 }
+#define CYAN (color_t){ 07, 7F, 0 }
+#define YELLOW   (color_t){ 255, 180, 0 }
+
+
+//#define BLACK           0x0000
+//#define RED             0xF800
+//#define CYAN            0x07FF
+//#define YELLOW          0xFFE0 
+//#define WHITE           0xFFFF
+//#define GREY            0x7BEF
 
 #define CH1COLOR YELLOW
 #define CH2COLOR CYAN
-const int SAMPLES = 320;
+#define  SAMPLES  320
 
-short data[4][SAMPLES];
+short data[SAMPLES];
 
 
 // NUM_SAMPLES 2048
@@ -44,70 +53,69 @@ void DrawGrid()
 	{
 		for (int y = 0; y <= LCD_HEIGHT; y += DOTS_DIV)
 		{
-			TFT_drawPixel(x, y, GREY);
-			CheckSW();
+			TFT_drawPixel(x, y, GREY,1);
 		}
 		if (LCD_HEIGHT == 240)
 		{
-			TFT_drawPixel(x, LCD_HEIGHT - 1, GREY);
+			TFT_drawPixel(x, LCD_HEIGHT - 1, GREY,1);
 		}
 	}
 	for (int x = 0; x <= SAMPLES; x += DOTS_DIV) // Vertical Line
 	{
 		for (int y = 0; y <= LCD_HEIGHT; y += 2)
 		{
-			TFT_drawPixel(x, y, GREY);
+			TFT_drawPixel(x, y, GREY,1);
 		}
 	}
 }
 
+#if 0
 void DrawGrid(int x)
 {
 	if ((x % 2) == 0)
 	{
 		for (int y = 0; y <= LCD_HEIGHT; y += DOTS_DIV)
 		{
-			TFT_drawPixel(x, y, GREY);
+			TFT_drawPixel(x, y, GREY,1);
 		}
 	}
 	if ((x % DOTS_DIV) == 0)
 	{
 		for (int y = 0; y <= LCD_HEIGHT; y += 2)
 		{
-			TFT_drawPixel(x, y, GREY);
+			TFT_drawPixel(x, y, GREY,1);
 		}
 	}
 }
+#endif
 
-void ClearAndDrawGraph()
+void ClearGraph()
 {
-	int clear = 0;
 
-	if (sample == 0)
-	{
-		clear = 2;
-	}
 	for (int x = 0; x < (SAMPLES - 1); x++)
 	{
-		TFT_drawLine(x, LCD_HEIGHT - data[clear + 0][x], x + 1, LCD_HEIGHT - data[clear + 0][x + 1], BLACK);
-		TFT_drawLine(x, LCD_HEIGHT - data[clear + 1][x], x + 1, LCD_HEIGHT - data[clear + 1][x + 1], BLACK);
-		//if (ch0_mode != MODE_OFF)
-		{
-			TFT_drawLine(x, LCD_HEIGHT - data[sample + 0][x], x + 1, LCD_HEIGHT - data[sample + 0][x + 1], CH1COLOR);
-		}
-		//if (ch1_mode != MODE_OFF)
-		//{
-		//	TFT_drawLine(x, LCD_HEIGHT - data[sample + 1][x], x + 1, LCD_HEIGHT - data[sample + 1][x + 1], CH2COLOR);
-		//}
+		TFT_drawLine(x, LCD_HEIGHT - data[x], x + 1, LCD_HEIGHT - data[x + 1], BLACK);
+    }
+
+}
+void DrawGraph()
+{
+	for (int x = 0; x < (SAMPLES - 1); x++)
+	{
+		TFT_drawLine(x, LCD_HEIGHT - data[x], x + 1, LCD_HEIGHT - data[x + 1], CH1COLOR);
 	}
 }
 
 
-//short data[4][SAMPLES];
-void drawSampleData(uint8_t* data,int num_samples) {
+void drawSampleData(int* data,int num_samples) {
 
-    // todo set data() !!!
-    ClearAndDrawGraph();
+
+    ClearGraph();
+
+	for (int x = 0; x < SAMPLES ; x++) {
+        data[x]=(short) data[x];
+    }
+    DrawGraph();
 
 }
 

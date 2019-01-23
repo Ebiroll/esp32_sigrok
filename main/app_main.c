@@ -227,6 +227,8 @@ void example_i2s_adc_dac(void*arg);
 
 #ifdef CONFIG_EXAMPLE_USE_TFT
 
+void drawSampleData(int* data,int num_samples);
+
 //=============
 void tft_init()
 {
@@ -336,6 +338,9 @@ void tft_init()
 	printf(" TFT started\r\n");
 	printf("---------------------\r\n");
 
+    TFT_setFont(DEFAULT_FONT, NULL);
+
+
 }
 
 #endif
@@ -430,11 +435,12 @@ void app_main(void)
       while(gpio_get_level(0)==level) {
             vTaskDelay(100 / portTICK_RATE_MS);
         }
+        printf("Start sampling\n");
         start_sampling();
 
         if (samples_finnished()) {
-
-
+            int samp=get_sample_values();
+            drawSampleData(samp,NUM_SAMPLES);
 
         }
 
