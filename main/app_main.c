@@ -48,7 +48,7 @@ SOFTWARE.
 
 // ==========================================================
 // Define which spi bus to use TFT_VSPI_HOST or TFT_HSPI_HOST
-#define SPI_BUS TFT_VSPI_HOST
+#define SPI_BUS TFT_HSPI_HOST
 // ==========================================================
 
 #endif
@@ -227,7 +227,7 @@ void example_i2s_adc_dac(void*arg);
 
 #ifdef CONFIG_EXAMPLE_USE_TFT
 
-void drawSampleData(int* data,int num_samples);
+void drawSampleData(int* in_data,int num_samples);
 
 //=============
 void tft_init()
@@ -241,8 +241,8 @@ void tft_init()
 
     // ===================================================
     // ==== Set display type                         =====
-    tft_disp_type = DEFAULT_DISP_TYPE;
-	//tft_disp_type = DISP_TYPE_ILI9341;
+    //tft_disp_type = DEFAULT_DISP_TYPE;
+	tft_disp_type = DISP_TYPE_ILI9341;
 	//tft_disp_type = DISP_TYPE_ILI9488;
 	//tft_disp_type = DISP_TYPE_ST7735B;
     //tft_disp_type =  DISP_TYPE_ST7735:
@@ -336,12 +336,64 @@ void tft_init()
 
     printf("\r\n---------------------\r\n");
 	printf(" TFT started\r\n");
+
 	printf("---------------------\r\n");
 
-    TFT_setFont(DEFAULT_FONT, NULL);
+    TFT_setGammaCurve(DEFAULT_GAMMA_CURVE);
+	TFT_setRotation(LANDSCAPE);
+	TFT_setFont(DEFAULT_FONT, NULL);
+	TFT_resetclipwin();
 
+    char Buff[120];
+    sprintf(Buff,"To start, press boot");
+
+    TFT_print(Buff,20,40);
+
+/*
+==============================
+Pins used: miso=25, mosi=23, sck=19, cs=22
+==============================
+
+SPI: display device added to spi bus (2)
+SPI: attached display device, speed=8000000
+SPI: bus uses native pins: false
+SPI: display init...
+
+*/
 
 }
+
+static void tft_trig_task(void *inpar) {
+
+
+    int level=gpio_get_level(0);
+    // Check boot button and trigger sampling
+    while(1) {
+      // You need to connect the debugger for this to work
+      //while(gpio_get_level(0)==level) {
+      //      vTaskDelay(100 / portTICK_RATE_MS);
+      //  }
+        TFT_fillWindow(TFT_BLACK);
+
+        printf("Start sampling\n");
+        vTaskDelay(50 / portTICK_RATE_MS);
+
+       while(true) {  // gpio_get_level(0)==level
+         start_sampling();
+         if (samples_finnished()) {
+             int *samp=get_sample_values();
+             drawSampleData(samp,NUM_SAMPLES);
+         } else {
+             printf("NOT FINISHED!!!!\n");
+             int *samp=get_sample_values();
+             drawSampleData(samp,NUM_SAMPLES);
+         }
+      }
+      level=gpio_get_level(0);
+
+    }
+}
+
 
 #endif
 
@@ -419,38 +471,15 @@ void app_main(void)
     // Analouge out, however this interferes with analogue in
     //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
 
-    scpi_server_init(&xHandlingTask);
-    sump_init();
-    sump_server_init();
-    sump_uart();
-
-
 #ifdef CONFIG_EXAMPLE_USE_TFT
-
     tft_init();
-
-    int level=gpio_get_level(0);
-    // Check boot button and trigger sampling
-    while(1) {
-      while(gpio_get_level(0)==level) {
-            vTaskDelay(100 / portTICK_RATE_MS);
-        }
-        printf("Start sampling\n");
-        start_sampling();
-
-        if (samples_finnished()) {
-            int samp=get_sample_values();
-            drawSampleData(samp,NUM_SAMPLES);
-
-        }
-
-
-
-
-        level=gpio_get_level(0);
-    }
-
+    xTaskCreatePinnedToCore(&tft_trig_task, "trig", 4096, NULL, 20, &xHandlingTask, 0);
 #endif
+
+    scpi_server_init(&xHandlingTask);
+    //sump_init();
+    //sump_server_init();
+    //sump_uart();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
     vTaskDelete(NULL);

@@ -5,10 +5,19 @@ https://en.wikipedia.org/wiki/Sigrok
 
 For digital input, an Open bench logic sniffer is emulated. (ols)
 A Rigol DS scope (rigol-ds) is emulated in order to allow sampling of analouge input.
+# adddd experimental tft drawing
+Just set correct display in config.
+The green line has a quater of the sampling speed comapre to the white line
+```
+Make sure we got
+#define CONFIG_EXAMPLE_USE_TFT 1
+```
+
+
 
 # Analogue
 ```
-(ADC1_CHANNEL_6)      //GPIO 34
+(ADC1_CHANNEL_5)      //GPIO 33
 ```
 
 ![uart](analog.png)
@@ -28,10 +37,10 @@ Pins that can be used for logical input on the WROVER board.
 Pins defined  for logical input with the code in this repository over SUMP.
 
 ```
-            21,
-            22,
-            23,
-            24,
+            12,
+            13,
+            14,
+            15,
 ```
 
 Testdata in this example. To get testdata connect i.e pin 17 & 22 and pin 23 & 18

@@ -1,6 +1,7 @@
 #include "analog.h"
 #include <driver/adc.h>
 #include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include <driver/gpio.h>
 #include <esp_err.h>
@@ -10,7 +11,8 @@
  * 1000mV to 1200mV. Use #define GET_VREF to route v_ref to a GPIO
  */
 #define V_REF   1100
-#define ADC1_TEST_CHANNEL (ADC1_CHANNEL_6)      //GPIO 34
+#define ADC1_TEST_CHANNEL (ADC1_CHANNEL_5)
+      //GPIO 33
 
 uint8_t analouge_values[NUM_SAMPLES];
 
@@ -19,7 +21,7 @@ int analouge_in_values[NUM_SAMPLES];
 int sample_point;
 
 
-
+SemaphoreHandle_t xSemaphore = NULL;
 
 
 // TODO, use DMA  , adc_set_i2s_data_source, 
@@ -106,9 +108,11 @@ uint8_t voltage_to_RawByte(uint32_t voltage) {
 }
 
 int* get_sample_values() {
+    /*
+    Use this for calibrated values
+    */
     esp_adc_cal_characteristics_t characteristics;
     esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
-
 
     sample_point=0;
     for(int i=0;i<NUM_SAMPLES;i++) {
@@ -146,8 +150,8 @@ void sample_thread(void *param) {
     //Init ADC and Characteristics
     esp_adc_cal_characteristics_t characteristics;
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_TEST_CHANNEL, ADC_ATTEN_DB_0);
-    esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
+    adc1_config_channel_atten(ADC1_TEST_CHANNEL, ADC_ATTEN_DB_11);
+    esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, &characteristics);
 
 #if 0
     uint32_t voltage;
@@ -165,7 +169,18 @@ void sample_thread(void *param) {
 
     uint32_t accumulated_ccount=0;
     // Initate
-    get_delta();
+    uint32_t test=get_delta();
+    //printf("%d\n",test);
+    //test=get_delta();
+    //printf("%d\n",test);
+    //test=get_delta();
+    //printf("%d\n",test);
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10 );
+    bool got_sem=false;
+
+    if (xSemaphoreTake(xSemaphore,xMaxBlockTime)) {
+       got_sem=true;
+    }
 
     sample_point=0;
     while (sample_point<NUM_SAMPLES) {
@@ -175,18 +190,15 @@ void sample_thread(void *param) {
         }
         voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
         //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
-        gpio_set_level(GPIO_NUM_17, blink);
+        // gpio_set_level(GPIO_NUM_17, blink);
         analouge_in_values[sample_point++]=voltage;
         blink=!blink;
         accumulated_ccount-=COUNT_FOR_SAMPLE;
     }
 
-   if (notify_task) {
-        xTaskNotify( *notify_task,
-                            SAMPLING_DONE_BIT,
-                            eSetBits );
-   }
-
+    if (got_sem) {
+       xSemaphoreGive(xSemaphore);
+    }
     vTaskDelete(NULL);
 }
 
@@ -195,6 +207,11 @@ void sample_thread(void *param) {
 
 
 void start_sampling() {
+
+    if (xSemaphore==NULL) {
+        xSemaphore = xSemaphoreCreateMutex();
+    }
+
     xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, 1);
 }
 
@@ -202,19 +219,12 @@ bool samples_finnished() {
     bool ret=false;
     unsigned int ulNotifiedValue;
 
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 500 );
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 100000 );
     BaseType_t xResult=0;
 
-
-    xResult = xTaskNotifyWait( pdFALSE,    /* Don't clear bits on entry. */
-                        ULONG_MAX,        /* Clear all bits on exit. */
-                        &ulNotifiedValue, /* Stores the notified value. */
-                        xMaxBlockTime );
-
-    if( xResult == pdPASS ) {
-        // Task finished
+    if (xSemaphoreTake(xSemaphore,xMaxBlockTime)) {
         ret=true;
-        //printf("Sample task finished\n");
+        xSemaphoreGive(xSemaphore);
     }
 
     return ret;

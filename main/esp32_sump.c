@@ -72,10 +72,10 @@ uint16_t getSample() {
 	// TODO, there should be a more direct way to read this
 
     uint16_t ret=0;
-	ret=gpio_get_level(21) | 
-	        (gpio_get_level(22) << 1) |  
-			(gpio_get_level(23) << 2) |
-			(gpio_get_level(24) << 3);
+	ret=gpio_get_level(12) | 
+	        (gpio_get_level(13) << 1) |  
+			(gpio_get_level(14) << 2) |
+			(gpio_get_level(15) << 3);
 
 	return (ret);
 			// ||
@@ -87,20 +87,20 @@ static void portc_init(void)
 {
 	    gpio_num_t pins[] = {
 			// JTAG, on the wrover kit
-            //12,
-            //13,
-            //14,
-            //15,
+            12,
+            13,
+            14,
+            15,
 			// Other
             //16,
             //17
             //18,
             //19,
             //20,
-            21,
-            22,
-            23,
-            24,
+            //21,
+            //22,
+            //23,
+            //24,
             //25,
             //26,
             //27
