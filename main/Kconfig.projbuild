@@ -1,4 +1,4 @@
-menu "Wifi Configuration"
+menu "Wifi and TFT Configuration"
 
 config WIFI_SSID
     string "WiFi SSID"
@@ -11,5 +11,35 @@ config WIFI_PASSWORD
     default "mypassword"
     help
 	WiFi password (WPA or WPA2) for the example to use.
+
+config EXAMPLE_USE_TFT
+    bool "Use TFT display after analouge aquisition"
+    default n
+    help
+        The analouge data will be displayed on TFT when pressing the boot button
+
+
+config EXAMPLE_DISPLAY_TYPE
+    int
+    default 0 if EXAMPLE_DISPLAY_TYPE0
+    default 1 if EXAMPLE_DISPLAY_TYPE1
+    default 2 if EXAMPLE_DISPLAY_TYPE2
+    default 3 if EXAMPLE_DISPLAY_TYPE3
+
+    choice
+        prompt "Select predefined display configuration"
+        default EXAMPLE_DISPLAY_TYPE0
+        help
+            Select predefined display configuration
+    
+        config EXAMPLE_DISPLAY_TYPE0
+            bool "None"
+        config EXAMPLE_DISPLAY_TYPE1
+            bool "ESP-WROVER-KIT Display"
+        config EXAMPLE_DISPLAY_TYPE2
+            bool "Adafruit TFT Feather display"
+        config EXAMPLE_DISPLAY_TYPE3
+            bool "M5Stack TFT display"
+    endchoice
 
 endmenu

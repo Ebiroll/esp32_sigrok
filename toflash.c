@@ -19,7 +19,7 @@ void merge_flash(char *binfile,char *flashfile,int flash_pos,int patch_hash)
     int file_size=0;
     int flash_size=0;
 
-    fbin = fopen(binfile, "r");
+    fbin = fopen(binfile, "rb");
     if (fbin == NULL) {
         printf("   Can't open '%s' for reading.\n", binfile);
 		return;
@@ -34,7 +34,7 @@ void merge_flash(char *binfile,char *flashfile,int flash_pos,int patch_hash)
       /* Handle Error */
     }
 
-    fflash  = fopen(flashfile, "r+");
+    fflash  = fopen(flashfile, "rb+");
     if (fflash == NULL) {
         printf("   Can't open '%s' for writing.\n", flashfile);
         return;
