@@ -107,7 +107,7 @@ void DrawGraph()
 void drawSampleData(int* in_data,int num_samples) {
 
 	for (int x = 0; x < SAMPLES ; x++) {
-        data[x]=(short) -30 + in_data[x];
+        data[x]=(short) -50 + in_data[x]/8;
     }
     DrawGraph();
 	for (int x = 0; x < SAMPLES ; x++) {
@@ -117,7 +117,8 @@ void drawSampleData(int* in_data,int num_samples) {
 	int skip=SAMPLES;
 
 	for (int x = 0; x < SAMPLES  && skip < num_samples; x++) {
-        slow_data[x]=(short) -80 + (in_data[skip]+in_data[skip+1]+in_data[skip+2]+in_data[skip+3])/4;
+		int tmp= -120 + (in_data[skip]/4+in_data[skip+1]/4+in_data[skip+2]/4+in_data[skip+3]/4)/8;
+        slow_data[x]=(short) tmp; 
 		skip+=4;
     }
 	DrawSlowGraph();

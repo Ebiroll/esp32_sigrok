@@ -7,12 +7,14 @@
 #include <esp_err.h>
 #include "esp_adc_cal.h"
 
+#define USE_SEMA 0
+
 /*Note: Different ESP32 modules may have different reference voltages varying from
  * 1000mV to 1200mV. Use #define GET_VREF to route v_ref to a GPIO
  */
 #define V_REF   1100
-#define ADC1_TEST_CHANNEL (ADC1_CHANNEL_5)
-      //GPIO 33
+#define ADC1_TEST_CHANNEL (ADC1_CHANNEL_0)
+      //GPIO 36
 
 uint8_t analouge_values[NUM_SAMPLES];
 
@@ -28,7 +30,7 @@ SemaphoreHandle_t xSemaphore = NULL;
 // Also allow setting parameters from sigrok
 
 // A complete sample loop takes about 8000 cycles, will not go faster
-#define COUNT_FOR_SAMPLE 8000*10
+#define COUNT_FOR_SAMPLE 17000
 
 
 // This function can be used to find the true value for V_REF
@@ -173,14 +175,16 @@ void sample_thread(void *param) {
     //printf("%d\n",test);
     //test=get_delta();
     //printf("%d\n",test);
-    //test=get_delta();
+    test=get_delta();
     //printf("%d\n",test);
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 10 );
     bool got_sem=false;
 
+#if USE_SEMA
     if (xSemaphoreTake(xSemaphore,xMaxBlockTime)) {
        got_sem=true;
     }
+#endif
 
     sample_point=0;
     while (sample_point<NUM_SAMPLES) {
@@ -196,10 +200,13 @@ void sample_thread(void *param) {
         accumulated_ccount-=COUNT_FOR_SAMPLE;
     }
 
+#if USE_SEMA
     if (got_sem) {
        xSemaphoreGive(xSemaphore);
     }
     vTaskDelete(NULL);
+#endif
+return;
 }
 
 //  xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, NULL, 1);
@@ -212,20 +219,27 @@ void start_sampling() {
         xSemaphore = xSemaphoreCreateMutex();
     }
 
+#if USE_SEMA
     xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, 1);
+#else
+    sample_thread(NULL);
+#endif
 }
 
 bool samples_finnished() {
     bool ret=false;
-    unsigned int ulNotifiedValue;
+
+#if USE_SEMA
 
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 100000 );
-    BaseType_t xResult=0;
 
     if (xSemaphoreTake(xSemaphore,xMaxBlockTime)) {
         ret=true;
         xSemaphoreGive(xSemaphore);
     }
+#else
+        ret=true;
+#endif
 
     return ret;
 }

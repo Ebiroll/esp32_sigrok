@@ -383,6 +383,27 @@ static void tft_trig_task(void *inpar) {
          if (samples_finnished()) {
              int *samp=get_sample_values();
              drawSampleData(samp,NUM_SAMPLES);
+             //printf("s=%d,%d\n",*samp,*(samp+1));
+
+             /*
+             int num_in_loop=0;
+             // Try trigger on rising edge
+             while(num_in_loop < NUM_SAMPLES-320) {
+                 if (*samp < *(samp+1) ) {
+                     if (*(samp+1) > 20) {
+                        drawSampleData(samp,NUM_SAMPLES-num_in_loop);
+                        printf("s=%d\n",num_in_loop);
+                        break;
+                     }
+                     samp++;
+                     num_in_loop++;
+                 }
+             }
+             if (num_in_loop > NUM_SAMPLES-340) {
+                 int *samp2=get_sample_values();
+                 drawSampleData(samp2,NUM_SAMPLES);
+             }
+             */
          } else {
              printf("NOT FINISHED!!!!\n");
              int *samp=get_sample_values();

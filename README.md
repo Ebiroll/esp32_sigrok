@@ -11,13 +11,22 @@ The green line has a quater of the sampling speed comapre to the white line
 ```
 Make sure we got
 #define CONFIG_EXAMPLE_USE_TFT 1
+You can also define 
+#define USE_SEMA 1
+Then sampling will be done in a separate thread.
+This gives much wose results!
+It is also possible to change the constant in analog,c
+Lower value -> Higher sampling rate.
+// A complete sample loop takes about 8000 cycles, will not go faster
+#define COUNT_FOR_SAMPLE 17000
+
 ```
 
 
 
 # Analogue
 ```
-(ADC1_CHANNEL_5)      //GPIO 33
+(ADC1_CHANNEL_0)      //GPIO 36
 ```
 
 ![uart](analog.png)
