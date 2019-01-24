@@ -8,7 +8,7 @@ A Rigol DS scope (rigol-ds) is emulated in order to allow sampling of analouge i
 
 # added experimental tft drawing
 Just set correct display in config.
-The green line has a quater of the sampling speed comapre to the white line
+The green line has a quarter of the sampling speed comapre to the white line
 ```
 Make sure we got
 #define CONFIG_EXAMPLE_USE_TFT 1
