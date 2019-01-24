@@ -5,7 +5,8 @@ https://en.wikipedia.org/wiki/Sigrok
 
 For digital input, an Open bench logic sniffer is emulated. (ols)
 A Rigol DS scope (rigol-ds) is emulated in order to allow sampling of analouge input.
-# adddd experimental tft drawing
+
+# added experimental tft drawing
 Just set correct display in config.
 The green line has a quater of the sampling speed comapre to the white line
 ```
@@ -19,9 +20,8 @@ It is also possible to change the constant in analog,c
 Lower value -> Higher sampling rate.
 // A complete sample loop takes about 8000 cycles, will not go faster
 #define COUNT_FOR_SAMPLE 17000
-
 ```
-
+However, It does not work with all 3 variants enabled at the same time.
 
 
 # Analogue
@@ -175,7 +175,7 @@ For digital data with ols (sump) driver
     sump_uart();
 ```
   sump_server_init(); is used for SUMP data on port 5566 and debugging
- 
+  Normal rigol-data is handled on port 5555 
 
 
 Further development of ESP32 as a scope will be carried out here,
