@@ -271,12 +271,18 @@ https://assets.tequipment.net/assets/1/26/Documents/Rigol/vs5000_programming.pdf
 ```
 To build a debuggable version of sigrok-cli use the CMakeLists.txt file
  mkdir sigrok;cd sigrok;
- git clone git://sigrok.org/libsigrokcxx.git
- // Not this?? git clone git://sigrok.org/libsigrok.git
+ git clone git clone git://sigrok.org/libsigrok.git 
+ // Not this?? git://sigrok.org/libsigrokcxx.git
  git clone git://sigrok.org/sigrok-cli
  cp CMakeLists.txt .
+ cd libsigrok
+ ./autogen.sh
+ ./configure
+ Patch sigrok-cli/show.c to i.e. printf("sigrok-cli %s\n\n", "0.X");
+ cd ..
  mkdir build;cd build; cmake ..
  ./olas-cli -d rigol-ds:conn=tcp-raw/192.168.1.127/5555  -l 5  --show
+ ./olas-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
 ```
 
 To test reading data with sump.
