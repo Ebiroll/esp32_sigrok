@@ -434,7 +434,7 @@ void app_main(void)
     xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, &xHandlingTask, 20, NULL, 0);
 #endif
 
-#if defined(SUMP_ON_NETWORK) ||  defined (SUMP_ON_NETWORK) || defined(DEBUG_SUMP)
+#if defined(SUMP_ON_NETWORK) ||  defined (SCPI_ON_NETWORK) || defined(DEBUG_SUMP)
     tcpip_adapter_init();
     ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -506,10 +506,12 @@ void app_main(void)
     scpi_server_init(&xHandlingTask);
 #endif
     sump_init();
-#if defined(SUMP_ON_NETWORK) || defined(CONFIG_EXAMPLE_USE_TFT)
+#if defined(SUMP_ON_NETWORK) || defined(DEBUG_SUMP)
     sump_server_init();
 #endif
+#if defined (SUMP_OVER_UART)
     sump_uart();
+#endif
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
     vTaskDelete(NULL);
