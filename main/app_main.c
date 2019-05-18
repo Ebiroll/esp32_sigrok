@@ -41,6 +41,7 @@ SOFTWARE.
 #include <driver/rmt.h>
 #include "driver/i2s.h"
 #include "driver/adc.h"
+#include "app-config.h"
 
 #ifdef CONFIG_EXAMPLE_USE_TFT
 #include "tftspi.h"
@@ -52,6 +53,8 @@ SOFTWARE.
 // ==========================================================
 
 #endif
+
+
 
 #define STEP_PIN  GPIO_NUM_21
 
@@ -66,7 +69,7 @@ TaskHandle_t xHandlingTask;
 
 char echoLine[BUF_SIZE];
 
-#if 1
+#if UART_TEST_OUTPUT
 static void init_uart_1()
 {
   uart_port_t uart_num = UART_NUM_1;                                     //uart port number
@@ -431,7 +434,7 @@ void app_main(void)
     xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, &xHandlingTask, 20, NULL, 0);
 #endif
 
-#if 1
+#if defined(SUMP_ON_NETWORK) ||  defined (SUMP_ON_NETWORK) || defined(DEBUG_SUMP)
     tcpip_adapter_init();
     ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -480,14 +483,16 @@ void app_main(void)
 	    gpio_set_level(GPIO_NUM_4, 0);
 #endif
 
-
+#ifdef RMT_PULSES
     send_remote_pulses();
     rmt_write_items(config.channel, items, 1, 0);
+#endif
 
-
+#ifdef UART_TEST_OUTPUT
     // To look at test UART data 2400 Baud on pin 18
     init_uart_1();
     xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 0);
+#endif
 
     // Analouge out, however this interferes with analogue in
     //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
@@ -497,10 +502,14 @@ void app_main(void)
     xTaskCreatePinnedToCore(&tft_trig_task, "trig", 4096, NULL, 20, &xHandlingTask, 0);
 #endif
 
+#ifdef SCPI_ON_NETWORK
     scpi_server_init(&xHandlingTask);
-    //sump_init();
-    //sump_server_init();
-    //sump_uart();
+#endif
+    sump_init();
+#if defined(SUMP_ON_NETWORK) || defined(CONFIG_EXAMPLE_USE_TFT)
+    sump_server_init();
+#endif
+    sump_uart();
 
     //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
     vTaskDelete(NULL);

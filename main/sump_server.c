@@ -134,7 +134,9 @@ int SUMP_Flush(sump_context_t * context) {
 
 
 void sump_debug(char *str,unsigned int value) {
-    //printf("%s 0x%X\n",str,value);   
+ #ifdef  DEBUG_SUMP
+    printf("%s 0x%X\n",str,value);   
+#endif
 #if 0
     strcpy(&SUMP_outputBuffer[SUMP_outputBuffer_idx], str);
     SUMP_outputBuffer_idx +=  strlen(str);

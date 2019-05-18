@@ -5,6 +5,31 @@ https://en.wikipedia.org/wiki/Sigrok
 
 For digital input, an Open bench logic sniffer is emulated. (ols)
 A Rigol DS scope (rigol-ds) is emulated in order to allow sampling of analouge input.
+Use pulseview to get the
+
+# Quickstart
+The different options as described below are defined in the file app-config.h
+The default configuration is to use SUMP over UART
+Go to the configuration options and set ssid and password
+    make menuconfig 
+    Wifi and TFT Configuration  --->
+
+Also set
+```
+  Bootloader log verbosity (No output)  --->    
+  Compiler options ->  Optimization Level (Release (-Os)) 
+```
+When using the WROVER board do,
+sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --scan
+Otherwise 
+sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
+
+Connect PIN 18-(2400 Baud UART output) to pin 12,13 or 14
+Then start pulseview 
+Select input device (ols) over serial
+Set samplingrate to 10 KHZ 
+
+![sump_uart](sump_uart.png)
 
 # added experimental tft drawing
 Just set correct display in config.

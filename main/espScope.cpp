@@ -16,7 +16,7 @@
 #include "soc/rtc.h"
 #include "soc/efuse_reg.h"
 #include "rom/lldesc.h"
-
+#include "app-config.h" 
 
 
 #define SAMPLES_COUNT 4000
@@ -33,7 +33,6 @@ const int D5 = 13;
 const int D6 = 12;
 const int D7 = 4;
 
-#define DEBUG_LOG_ENABLE 1
 
 #define APLL_MIN_FREQ (350000000)
 #define APLL_MAX_FREQ (500000000)
