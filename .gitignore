@@ -30,6 +30,7 @@ build
 *.hex
 
 # Debug files
+.vscode
 *.dSYM/
 *.su
 build
