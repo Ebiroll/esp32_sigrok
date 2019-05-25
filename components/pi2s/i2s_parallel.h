@@ -27,4 +27,8 @@ typedef struct {
 void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg);
 void i2s_parallel_flip_to_buffer(i2s_dev_t *dev, int bufid);
 
+void i2s_parallel_start(i2s_dev_t *dev);
+void i2s_parallel_stop(i2s_dev_t *dev);
+
+
 #endif

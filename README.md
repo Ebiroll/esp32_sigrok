@@ -5,7 +5,7 @@ https://en.wikipedia.org/wiki/Sigrok
 
 For digital input, an Open bench logic sniffer is emulated. (ols)
 A Rigol DS scope (rigol-ds) is emulated in order to allow sampling of analouge input.
-Use pulseview to get the
+Use pulseview to get the graphical input.
 
 # Quickstart
 The different options as described below are defined in the file app-config.h
@@ -27,6 +27,7 @@ sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
 Connect PIN 18-(2400 Baud UART output) to pin 12,13 or 14
 Then start pulseview 
 Select input device (ols) over serial
+You might have to press scan a few times until the ESP32 appears.
 Set samplingrate to 10 KHZ 
 
 ![sump_uart](sump_uart.png)

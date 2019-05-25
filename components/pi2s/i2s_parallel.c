@@ -12,6 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/*  Also look here for newer implementation of this
+ *  https://github.com/Spritetm/printercart_simple/tree/master/components/printcart
+ * ----------------------------------------------------------------------------
+ * "THE BEER-WARE LICENSE" (Revision 42):
+ * Jeroen Domburg <jeroen@spritesmods.com> wrote this file. As long as you retain 
+ * this notice you can do whatever you want with this stuff. If we meet some day, 
+ * and you think this stuff is worth it, you can buy me a beer in return. 
+ * ----------------------------------------------------------------------------
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -85,6 +95,14 @@ static void gpio_setup_out(int gpio, int sig) {
 }
 
 
+static void gpio_setup_in(int gpio, int sig) {
+    if (gpio==-1) return;
+    PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
+    gpio_set_direction(gpio, GPIO_MODE_DEF_INPUT);
+    gpio_matrix_in(gpio, sig, false);
+}
+
+
 static void dma_reset(i2s_dev_t *dev) {
     dev->lc_conf.in_rst=1; dev->lc_conf.in_rst=0;
     dev->lc_conf.out_rst=1; dev->lc_conf.out_rst=0;
@@ -104,24 +122,25 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
     printf("Setting up parallel I2S bus at I2S%d\n", i2snum(dev));
     int sig_data_base, sig_clk;
     if (dev==&I2S0) {
-        sig_data_base=I2S0O_DATA_OUT0_IDX;
-        sig_clk=I2S0O_WS_OUT_IDX;
+        sig_data_base=I2S0I_DATA_IN0_IDX;
+        sig_clk=I2S0I_WS_IN_IDX;
     } else {
         if (cfg->bits==I2S_PARALLEL_BITS_32) {
-            sig_data_base=I2S1O_DATA_OUT0_IDX;
+            sig_data_base=I2S1I_DATA_IN0_IDX;
         } else {
             //Because of... reasons... the 16-bit values for i2s1 appear on d8...d23
-            sig_data_base=I2S1O_DATA_OUT8_IDX;
+            // Not sure if this applies to input???
+            sig_data_base=I2S1I_DATA_IN8_IDX;
         }
-        sig_clk=I2S1O_WS_OUT_IDX;
+        sig_clk=I2S1I_WS_IN_IDX;
     }
     
     //Route the signals
     for (int x=0; x<cfg->bits; x++) {
-        gpio_setup_out(cfg->gpio_bus[x], sig_data_base+x);
+        gpio_setup_in(cfg->gpio_bus[x], sig_data_base+x);
     }
     //ToDo: Clk/WS may need inversion?
-    gpio_setup_out(cfg->gpio_clk, sig_clk);
+    gpio_setup_in(cfg->gpio_clk, sig_clk);
     
     //Power on dev
     if (dev==&I2S0) {
@@ -135,10 +154,61 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
     dma_reset(dev);
     fifo_reset(dev);
     
-    //Enable LCD mode
-    dev->conf2.val=0;
+    /*
+    8.3 The Clock of I2S Module(Reference Manual)
+        I2Sn_CLK, as the master clock of I2S module, 
+        is derived from the 160 MHz clock PLL_D2_CLK 
+        or the configurable analog PLL output clock APLL_CLK. 
+        PLL_D2_CLK is used as the clock source for I2Sn, bydefault. 
+    */
+    // Enable slave mode (sampling clock is external)
+    // We will connect the output of the remote device (RMT) to the pixel clock.
+    dev->conf.rx_slave_mod = 1; 
+    // Enable parallell mode
+    //dev->conf2.val=0;
     dev->conf2.lcd_en=1;
     
+    // Use HSYNC/VSYNC/HREF to control sampling
+    dev->conf2.camera_en = 1;
+
+    // Configure clock divider
+    dev->clkm_conf.clkm_div_a = 1;
+    dev->clkm_conf.clkm_div_b = 0;
+    dev->clkm_conf.clkm_div_num = 2;
+    dev->sample_rate_conf.rx_bck_div_num = 2; //i2s clk is divided before reaches BCK output 
+
+    // FIFO will sink data to DMA
+    dev->fifo_conf.dscr_en = 1;
+    dev->fifo_conf.tx_fifo_mod_force_en = 1;
+    dev->fifo_conf.rx_fifo_mod_force_en = 1;
+    // FIFO configuration
+    //two bytes per dword packing
+    dev->fifo_conf.rx_fifo_mod = 1;
+    dev->conf_chan.rx_chan_mod = 1;
+    // Clear flags which are used in I2S serial mode
+    dev->sample_rate_conf.rx_bits_mod = 0;
+    dev->conf.rx_right_first = 0;
+    dev->conf.rx_msb_right = 0;
+    dev->conf.rx_msb_shift = 0;
+    dev->conf.rx_mono = 0;
+    dev->conf.rx_short_sync = 0;
+    dev->timing.val = 0;
+    //start i2s
+    //dev->rx_eof_num = 0xFFFFFFFF;
+    //dev->in_link.addr = (uint32_t)&dma_descriptor[0];
+    //dev->in_link.start = 1;
+    //dev->int_clr.val = dev->int_raw.val;
+    //dev->int_ena.val = 0;
+
+    //start i2s + dma
+    //I2S0.conf.rx_start = 1;
+
+    //delay(10000);
+
+    // stop i2s + dma
+    // I2S0.conf.rx_start = 0;
+
+/*
     dev->sample_rate_conf.val=0;
     dev->sample_rate_conf.rx_bits_mod=cfg->bits;
     dev->sample_rate_conf.tx_bits_mod=cfg->bits;
@@ -174,7 +244,8 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
     dev->conf.rx_right_first=1;
     
     dev->timing.val=0;
-    
+    */
+
     //Allocate DMA descriptors
     i2s_state[i2snum(dev)]=malloc(sizeof(i2s_parallel_state_t));
     i2s_parallel_state_t *st=i2s_state[i2snum(dev)];
@@ -194,10 +265,20 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
     dev->conf.tx_reset=0; dev->conf.tx_fifo_reset=0; dev->conf.rx_fifo_reset=0;
     
     //Start dma on front buffer
-    dev->lc_conf.val=I2S_OUT_DATA_BURST_EN | I2S_OUTDSCR_BURST_EN | I2S_OUT_DATA_BURST_EN;
-    dev->out_link.addr=((uint32_t)(&st->dmadesc_a[0]));
-    dev->out_link.start=1;
-    dev->conf.tx_start=1;
+                     // I2S_OUT_DATA_BURST_EN | I2S_OUTDSCR_BURST_EN | I2S_OUT_DATA_BURST_EN;
+    dev->lc_conf.val=   I2S_INDSCR_BURST_EN  ;
+    dev->in_link.addr=((uint32_t)(&st->dmadesc_a[0]));
+    dev->in_link.start=1;
+    // Start receive
+    dev->conf.rx_start=1;
+}
+
+void i2s_parallel_start(i2s_dev_t *dev) {
+    dev->conf.rx_start=1;
+}
+void i2s_parallel_stop(i2s_dev_t *dev) {
+    dev->conf.rx_start=1;
+    dev->conf.rx_reset=1;
 }
 
 
@@ -217,6 +298,130 @@ void i2s_parallel_flip_to_buffer(i2s_dev_t *dev, int bufid) {
 }
 
 #if 0
+
+#include "soc/soc.h"
+#include "soc/gpio_sig_map.h"
+#include "soc/i2s_reg.h"
+#include "soc/i2s_struct.h"
+#include "soc/io_mux_reg.h"
+#include "driver/gpio.h"
+#include "driver/periph_ctrl.h"
+#include "driver/i2s.h"
+#include "rom/lldesc.h"
+
+DMA_ATTR uint32_t dma_buff[2][100];
+DMA_ATTR lldesc_t dma_descriptor[2];
+
+void setup() {
+    Serial.begin(115200);
+    Serial.println(ESP.getSdkVersion());
+  
+    //buff 0
+    dma_descriptor[0].length = 0; //number of byte written to the buffer
+    dma_descriptor[0].size = sizeof(dma_buff[0]); //max size of the buffer in bytes
+    dma_descriptor[0].owner = 1;
+    dma_descriptor[0].sosf = 1;
+    dma_descriptor[0].buf = (uint8_t*)&dma_buff[0][0];
+    dma_descriptor[0].offset = 0;
+    dma_descriptor[0].empty = 0;
+    dma_descriptor[0].eof = 0;
+    //pointer to the next descriptor
+    dma_descriptor[0].qe.stqe_next = &dma_descriptor[1];
+
+    //buff 1
+    dma_descriptor[1].length = 0; //number of byte written to the buffer
+    dma_descriptor[1].size = sizeof(dma_buff[1]); //max size of the buffer in bytes
+    dma_descriptor[1].owner = 1;
+    dma_descriptor[1].sosf = 1;
+    dma_descriptor[1].buf = (uint8_t*)&dma_buff[1][0];
+    dma_descriptor[1].offset = 0;
+    dma_descriptor[1].empty = 0;
+    dma_descriptor[1].eof = 0;
+    //pointer to the next descriptor
+    dma_descriptor[1].qe.stqe_next = &dma_descriptor[0];
+
+    //data inputs
+    pinMode(18, INPUT);
+    gpio_matrix_in(18,    I2S0I_DATA_IN0_IDX, false);
+    pinMode(23, INPUT);
+    gpio_matrix_in(23,    I2S0I_DATA_IN1_IDX, false);
+    pinMode(19, INPUT);
+    gpio_matrix_in(19,    I2S0I_DATA_IN2_IDX, false);
+    //for i2s in parallel camera input mode data is receiver only when V_SYNC = H_SYNC = H_ENABLE = 1. We don't use these inputs so simply set them High
+    gpio_matrix_in(0x38, I2S0I_V_SYNC_IDX, false);
+    gpio_matrix_in(0x38, I2S0I_H_SYNC_IDX, false);  //0x30 sends 0, 0x38 sends 1
+    gpio_matrix_in(0x38, I2S0I_H_ENABLE_IDX, false);
+
+    pinMode(15, INPUT);
+    gpio_matrix_in(15/*XCLK*/, I2S0I_WS_IN_IDX, false);
+    
+    // Enable and configure I2S peripheral
+    periph_module_enable(PERIPH_I2S0_MODULE);
+
+    // Enable slave mode (sampling clock is external)
+    I2S0.conf.rx_slave_mod = 1; 
+    // Enable parallel mode
+    I2S0.conf2.lcd_en = 1;
+
+    // Use HSYNC/VSYNC/HREF to control sampling
+    I2S0.conf2.camera_en = 1;
+    
+    // Configure clock divider
+    I2S0.clkm_conf.clkm_div_a = 1;
+    I2S0.clkm_conf.clkm_div_b = 0;
+    I2S0.clkm_conf.clkm_div_num = 2;
+    I2S0.sample_rate_conf.rx_bck_div_num = 2; //i2s clk is divided before reaches BCK output 
+       
+    // FIFO will sink data to DMA
+    I2S0.fifo_conf.dscr_en = 1;
+    I2S0.fifo_conf.tx_fifo_mod_force_en = 1;
+    I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
+    // FIFO configuration
+    //two bytes per dword packing
+    I2S0.fifo_conf.rx_fifo_mod = 1;
+    I2S0.conf_chan.rx_chan_mod = 1;
+    // Clear flags which are used in I2S serial mode
+    I2S0.sample_rate_conf.rx_bits_mod = 0;
+    I2S0.conf.rx_right_first = 0;
+    I2S0.conf.rx_msb_right = 0;
+    I2S0.conf.rx_msb_shift = 0;
+    I2S0.conf.rx_mono = 0;
+    I2S0.conf.rx_short_sync = 0;
+    I2S0.timing.val = 0;
+
+    //start i2s
+    I2S0.rx_eof_num = 0xFFFFFFFF;
+    I2S0.in_link.addr = (uint32_t)&dma_descriptor[0];
+    I2S0.in_link.start = 1;
+    I2S0.int_clr.val = I2S0.int_raw.val;
+    I2S0.int_ena.val = 0;
+
+    //start i2s + dma
+    I2S0.conf.rx_start = 1;
+
+    delay(10000);
+
+    //stop i2s + dma
+    I2S0.conf.rx_start = 0;
+    
+    for(uint8_t i = 0; i<sizeof(dma_buff[0])/2; i++) {
+      Serial.println(*(((uint16_t *)&dma_buff[0][0]) + i));
+      Serial.print(' ');
+      delay(10);
+    }
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+}
+```cpp
+
+## Other items : 
+The attached picture shows an irregular graph instead of an expected even ramp signal.
+
+==========================================================================================
+
 // We will want to run i2s as input for sigrok
 static void i2s_init()
 {
