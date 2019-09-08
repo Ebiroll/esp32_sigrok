@@ -300,10 +300,10 @@ To build a debuggable version of sigrok-cli use the CMakeLists.txt file
  git clone git clone git://sigrok.org/libsigrok.git 
  // Not this?? git://sigrok.org/libsigrokcxx.git
  git clone git://sigrok.org/sigrok-cli
- cp CMakeLists.txt .
+ cp ../sigrok_build/CMakeLists.txt 
  cd libsigrok
  ./autogen.sh
- ./configure
+ ./configure  --without-libbluez
  Patch sigrok-cli/show.c to i.e. printf("sigrok-cli %s\n\n", "0.X");
  cd ..
  mkdir build;cd build; cmake ..
