@@ -442,7 +442,13 @@ Query returns
 static scpi_result_t time_scale(scpi_t * context) {
 
     //SCPI_ResultFloat(context, 2.0f);
+    // The unit  is  “S/div”
+    // 10 ms/div
     SCPI_ResultMnemonic(context, "10e-3");
+
+    // 1 ms/div
+    //SCPI_ResultMnemonic(context, "1.000e-3");
+
 
     //SCPI_ResultText(context, "1e-6");
     //SCPI_ResultFloat(context, 2.0f);
@@ -678,6 +684,9 @@ return SCPI_RES_OK;
 
 unsigned char sample_data[4096];
 
+bool readDigital=false;
+
+//http://int.rigol.com/File/TechDoc/20151218/MSO1000Z&DS1000Z_ProgrammingGuide_EN.pdf
 static scpi_result_t wav_data(scpi_t * context) {
     const char * data;
     size_t len=1400;
@@ -688,10 +697,18 @@ static scpi_result_t wav_data(scpi_t * context) {
 #endif
     //#90 0000 1400 1400
 
-    sample_data[0]='1';
-    sample_data[1]='4';
+    sample_data[0]='#';
+    sample_data[1]='9';
     sample_data[2]='0';
     sample_data[3]='0';
+    sample_data[4]='0';
+    sample_data[5]='0';
+    sample_data[6]='0';
+    sample_data[7]='1';
+    sample_data[8]='4';
+    sample_data[9]='0';
+    sample_data[10]='0';
+
 /*
     sample_data[4]='1';
     sample_data[5]='4';
@@ -700,11 +717,20 @@ static scpi_result_t wav_data(scpi_t * context) {
 */
 
 #ifdef START_SAMPLE_TASK
-uint8_t* result=get_values();
- for (int i=4;i<1400;i++) {
-     sample_data[i]=*result;
-     result++;
- }
+
+if (readDigital) {
+    uint8_t* result=(uint8_t *)get_digital_values();
+    for (int i=0;i<1400;i++) {
+        sample_data[i+11]=*result;
+        result++;
+    }
+} else {
+    uint8_t* result=get_values();
+    for (int i=4;i<1400;i++) {
+        sample_data[i+11]=*result;
+        result++;
+    }
+}
 
 #else
 
@@ -817,6 +843,8 @@ static scpi_result_t set_wav_mode(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+// http://int.rigol.com/File/TechDoc/20151218/MSO1000Z&DS1000Z_ProgrammingGuide_EN.pdf
+
 
 // :WAV:SOUR CHAN1
 // :WAV:SOUR LA
@@ -824,6 +852,12 @@ static scpi_result_t set_wav_source(scpi_t * context) {
     char *result;
     size_t len;
     if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        if (strncmp(result,"LA",2)==0) {
+            readDigital=true;
+        } else {
+            readDigital=false;
+        }
+
         return SCPI_RES_OK;
     }
 
@@ -1010,6 +1044,7 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "D15:DISP?", .callback = chan_disp_off,},
     //ACQ:MDEP?          //asks scope for mem depth or number of points. 
     // https://rigol.desk.com/customer/en/portal/articles/2726897-deep-memory-binary-data-collection-and-conversion
+    // https://www.codeproject.com/Articles/869421/Interfacing-Rigol-Oscilloscopes-with-C
     { .pattern = "ACQ:MDEP", .callback = set_acq_mem,},
     { .pattern = "ACQ:MDEP?", .callback = query_acq_mem,},
     

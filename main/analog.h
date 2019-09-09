@@ -10,6 +10,8 @@
 
 uint8_t* get_values();
 
+uint16_t* get_digital_values();
+
 int* get_sample_values();
 
 

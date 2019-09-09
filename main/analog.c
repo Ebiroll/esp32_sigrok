@@ -9,6 +9,41 @@
 
 #define USE_SEMA 0
 
+
+#define PARALLEL_0  12
+
+//At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
+
+void setup_digital() {
+  for (int i = 0; i < 8; i++) {
+    //pinMode(PARALLEL_0 + i, INPUT);
+    gpio_set_direction(GPIO_NUM_0 +i,GPIO_MODE_INPUT);
+    gpio_set_pull_mode(GPIO_NUM_0 +i,GPIO_FLOATING);
+  }
+}
+
+//After that, you can use the following functions to set the 8 pins as inputs or outputs, and to read the input values and write the output values:
+void parallel_set_inputs(void) {
+  REG_WRITE(GPIO_ENABLE_W1TC_REG, 0xFF << PARALLEL_0);
+}
+
+void parallel_set_outputs(void) {
+  REG_WRITE(GPIO_ENABLE_W1TS_REG, 0xFF << PARALLEL_0);
+}
+
+inline uint16_t parallel_read(void) {
+  uint32_t input = REG_READ(GPIO_IN_REG);
+
+  return (input >> PARALLEL_0);
+}
+
+void parallel_write(uint8_t value) {
+  uint32_t output =
+    (REG_READ(GPIO_OUT_REG) & ~(0xFF << PARALLEL_0)) | (((uint32_t)value) << PARALLEL_0);
+
+  REG_WRITE(GPIO_OUT_REG, output);
+}
+
 /*Note: Different ESP32 modules may have different reference voltages varying from
  * 1000mV to 1200mV. Use #define GET_VREF to route v_ref to a GPIO
  */
@@ -20,17 +55,19 @@ uint8_t analouge_values[NUM_SAMPLES];
 
 int analouge_in_values[NUM_SAMPLES];
 
+uint16_t digital_in_values[NUM_SAMPLES];
+
 int sample_point;
 
 
 SemaphoreHandle_t xSemaphore = NULL;
 
-
+// https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
 // TODO, use DMA  , adc_set_i2s_data_source, 
 // Also allow setting parameters from sigrok
 
 // A complete sample loop takes about 8000 cycles, will not go faster
-#define COUNT_FOR_SAMPLE 17000
+#define COUNT_FOR_SAMPLE 18000
 
 
 // This function can be used to find the true value for V_REF
@@ -143,6 +180,9 @@ uint8_t* get_values() {
     return analouge_values;
 };
 
+uint16_t* get_digital_values() {
+    return digital_in_values;
+}
 
 
 void sample_thread(void *param) {
@@ -165,7 +205,6 @@ void sample_thread(void *param) {
 #endif
 
     uint32_t voltage;
-    int blink=0;
 
     uint32_t ccount;
 
@@ -194,9 +233,9 @@ void sample_thread(void *param) {
         }
         voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
         //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
-        // gpio_set_level(GPIO_NUM_17, blink);
+
+        digital_in_values[sample_point]=parallel_read();
         analouge_in_values[sample_point++]=voltage;
-        blink=!blink;
         accumulated_ccount-=COUNT_FOR_SAMPLE;
     }
 
