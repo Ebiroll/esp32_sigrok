@@ -257,6 +257,9 @@ static void scpi_server_thread(void *arg) {
                     printf("Connection closed\r\n");
                     break;
                 } else {
+                    // To debug input
+                    //smbuffer[rc]=0;
+                    //printf("%s\n",smbuffer);
                     SCPI_Input(&scpi_context, smbuffer, rc);
                 }
             }

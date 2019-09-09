@@ -8,7 +8,11 @@
 //#define DEBUG_LOG_ENABLE 1
 //#define OTA_RUN_SERVER 1
 
-//#define UART_TEST_OUTPUT 1
+#define UART_TEST_OUTPUT 1
+#define UART_OUTPUT_PIN 18
+#define UART_RX_PIN 19
+
 #undef RMT_PULSES
 
 //#define RUN_IN_QEMU 1
+

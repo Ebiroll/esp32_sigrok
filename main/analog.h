@@ -18,6 +18,8 @@ int* get_sample_values();
 // Param is task handle of task to notify
 void sample_thread(void *param);
 
+void setTimescale(float scale);
+
 void start_sampling();
 
 bool samples_finnished();

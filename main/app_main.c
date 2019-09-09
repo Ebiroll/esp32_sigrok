@@ -124,7 +124,7 @@ static void init_uart_1()
   ESP_ERROR_CHECK( uart_param_config(uart_num, &uart_config));
   QueueHandle_t uart_queue;
   // Use default pins for the uart
-  ESP_ERROR_CHECK( uart_set_pin(uart_num, 18, 19 , -1, -1));
+  ESP_ERROR_CHECK( uart_set_pin(uart_num, UART_OUTPUT_PIN, UART_RX_PIN , -1, -1));
   ESP_ERROR_CHECK( uart_driver_install(uart_num, 512 * 2, 512 * 2, 10,  &uart_queue,0));
 
 }
@@ -143,6 +143,7 @@ static void uartWRITETask(void *inpar) {
 }
 #endif
 
+#if 0
 static void init_uart()
 {
   uart_port_t uart_num = UART_NUM_0;                                     //uart port number
@@ -184,6 +185,7 @@ static void uartECHOTask(void *inpar) {
     uart_flush(0);
   }
 }
+#endif
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
@@ -480,7 +482,7 @@ static void tft_trig_task(void *inpar) {
 void app_main(void)
 {
     nvs_flash_init();
-    init_uart();
+    //init_uart();
 
 #if 0
     xTaskCreatePinnedToCore(&test_sample_task, "test_sample_task", 4096, NULL, 10, &xHandlingTask, 0);
@@ -529,7 +531,7 @@ ota_event_group = xEventGroupCreate();
     //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    gpio_set_direction(GPIO_NUM_17, GPIO_MODE_OUTPUT);
+    //gpio_set_direction(GPIO_NUM_17, GPIO_MODE_OUTPUT);
     //gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
     //gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
     //gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
@@ -560,7 +562,7 @@ ota_event_group = xEventGroupCreate();
 #ifdef UART_TEST_OUTPUT
     // To look at test UART data 2400 Baud on pin 18
     init_uart_1();
-    xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, &TaskHandle_tmp);
+    xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, &TaskHandle_tmp, 0);
     xTaskList[xtaskListCounter++] = TaskHandle_tmp;
 
 #endif
@@ -570,8 +572,8 @@ ota_event_group = xEventGroupCreate();
 
 #ifdef CONFIG_EXAMPLE_USE_TFT
     tft_init();
-    xTaskCreatePinnedToCore(&tft_trig_task, "trig", 4096, NULL, 20, &xHandlingTask, &TaskHandle_tmp);
-    xTaskList[xtaskListCounter++] = TaskHandle_tmp;
+    xTaskCreatePinnedToCore(&tft_trig_task, "trig", 4096, NULL, 20, &xHandlingTask, 1);
+    xTaskList[xtaskListCounter++] = xHandlingTask;
 #endif
 
 #ifdef SCPI_ON_NETWORK
@@ -587,7 +589,6 @@ ota_event_group = xEventGroupCreate();
     sump_uart();
 #endif
 
-    //xTaskCreatePinnedToCore(&uartECHOTask, "echo", 4096, NULL, 20, NULL, 0);
     vTaskDelete(NULL);
 
 }

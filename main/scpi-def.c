@@ -439,15 +439,18 @@ Query returns
 2.000e+00
 */
 
+// 5ms start time
+float time_scale_value=0.01;
+
 static scpi_result_t time_scale(scpi_t * context) {
 
-    //SCPI_ResultFloat(context, 2.0f);
+    SCPI_ResultFloat(context, time_scale_value);
     // The unit  is  “S/div”
     // 10 ms/div
-    SCPI_ResultMnemonic(context, "10e-3");
+    //SCPI_ResultMnemonic(context, "10e-3");
 
-    // 1 ms/div
-    //SCPI_ResultMnemonic(context, "1.000e-3");
+    // 1 us/div
+    //SCPI_ResultMnemonic(context, "10e-6");
 
 
     //SCPI_ResultText(context, "1e-6");
@@ -487,7 +490,7 @@ he command is to set the vertical range of the amplified waveform.
 200mV~ 1000V   Probe 100X  
 2V~10000V      Probe 1000X 
 */
-    SCPI_ResultFloat(context, 0.5f);
+    SCPI_ResultFloat(context, 0.02f);
 
 
     return SCPI_RES_OK;
@@ -737,7 +740,7 @@ if (readDigital) {
     int fake=25;
     for (int i=0;i<1400;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
-       sample_data[i]=fake;
+       sample_data[i+11]=fake;
        fake++;
        if (fake>225) {
            fake=25;
@@ -842,6 +845,25 @@ static scpi_result_t set_wav_mode(scpi_t * context) {
 
     return SCPI_RES_OK;
 }
+
+extern void setTimescale(float scale);
+
+
+// Time scale
+static scpi_result_t set_time_scale(scpi_t * context) {
+    
+    if (SCPI_ParamFloat(context, &time_scale_value,TRUE)) {
+
+        printf("Time scale %.6f", time_scale_value);
+        setTimescale(time_scale_value);
+
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+
 
 // http://int.rigol.com/File/TechDoc/20151218/MSO1000Z&DS1000Z_ProgrammingGuide_EN.pdf
 
@@ -952,6 +974,9 @@ const scpi_command_t scpi_commands[] = {
 
     { .pattern = ":LA:STAT?", .callback = la_stat_query,},
 
+    { .pattern = ":TIM:SCAL", .callback = set_time_scale,},
+
+
     { .pattern = ":LA:DIG0:DISP?", .callback = chan_disp_on,},
     { .pattern = ":LA:DIG1:DISP?", .callback = chan_disp_on,},
     { .pattern = ":LA:DIG2:DISP?", .callback = chan_disp_on,},
@@ -983,6 +1008,9 @@ const scpi_command_t scpi_commands[] = {
    { .pattern = ":LA:DIG10:DISP", .callback = chan_la_disp0,},
    { .pattern = ":LA:DIG11:DISP", .callback = chan_la_disp0,},
    { .pattern = ":LA:DIG12:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG13:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG14:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG15:DISP", .callback = chan_la_disp0,},
     
     { .pattern = "WAV:YREF?", .callback = wav_yref,},
     { .pattern = "WAV:STAT?", .callback = wav_stat,},

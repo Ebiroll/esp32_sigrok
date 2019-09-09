@@ -18,17 +18,31 @@ Also set
 ```
   Bootloader log verbosity (No output)  --->    
   Compiler options ->  Optimization Level (Release (-Os)) 
+
+  → Component config → ESP32-specific -> CPU Frequency (160 Mhz)
+  If you change frequency, you must adjust
+  void setTimescale(float scale) in 
+
 ```
-When using the WROVER board do,
-sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --scan
-Otherwise 
-sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
 
 Connect PIN 18-(2400 Baud UART output) to pin 12,13 or 14
 Then start pulseview 
-Select input device (ols) over serial
+pulseview -d rigol-ds:conn=tcp-raw/127.0.0.1/5555 -l 5
+
+Do not use timebase less than 1 ms as timing will not be accurate.
+
+
+# Sump
+You have to change configuration in app-config.h to get this to work
+
 You might have to press scan a few times until the ESP32 appears.
 Set samplingrate to 10 KHZ 
+
+
+When using the WROVER board do,
+sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --scan
+Otherwise when scanning sump
+sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
 
 ![sump_uart](sump_uart.png)
 
@@ -77,6 +91,30 @@ Pins defined  for logical input with the code in this repository over SUMP.
             14,
             15,
 ```
+
+Pins defined  for logical input with the code in this repository rigol-ds.
+
+```
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,  // UART out
+            19,  // UART RX
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+```
+
+
 
 Testdata in this example. To get testdata connect i.e pin 17 & 22 and pin 23 & 18
 ```
@@ -237,7 +275,8 @@ Add #define RUN_IN_QEMU 1 in app-config.h
 
 And client can be run as,
 
-    ./olas-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5    --scan
+    ./olas-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5    --show
+    pulseview -d rigol-ds:conn=tcp-raw/127.0.0.1/5555 -l 5
 
 # OTA updates,
 
@@ -349,7 +388,9 @@ https://github.com/gillham/logic_analyzer/blob/master/logic_analyzer.ino
 
 # Rigol and SCPI
 
-TODO, contact this person
+QT rigol scope
+https://gitlab.com/Teuniz/DSRemote
+
 https://github.com/hackrid/pyrigolla/
 
 

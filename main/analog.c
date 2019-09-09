@@ -6,6 +6,7 @@
 #include <driver/gpio.h>
 #include <esp_err.h>
 #include "esp_adc_cal.h"
+#include "app-config.h"
 
 #define USE_SEMA 0
 
@@ -15,10 +16,19 @@
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
 
 void setup_digital() {
-  for (int i = 0; i < 8; i++) {
-    //pinMode(PARALLEL_0 + i, INPUT);
-    gpio_set_direction(GPIO_NUM_0 +i,GPIO_MODE_INPUT);
-    gpio_set_pull_mode(GPIO_NUM_0 +i,GPIO_FLOATING);
+  for (int i = 0; i < 16; i++) {
+
+    if (PARALLEL_0 +i == UART_OUTPUT_PIN  || PARALLEL_0 +i == UART_RX_PIN) 
+    {
+        // If uart outup is enabled, we do not set those pins at input
+#if !UART_TEST_OUTPUT 
+        gpio_set_direction(PARALLEL_0 +i,GPIO_MODE_INPUT);
+        gpio_set_pull_mode(PARALLEL_0 +i,GPIO_FLOATING);
+#endif
+    } else {
+        gpio_set_direction( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_MODE_INPUT);
+        gpio_set_pull_mode( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_FLOATING);
+    }
   }
 }
 
@@ -67,7 +77,18 @@ SemaphoreHandle_t xSemaphore = NULL;
 // Also allow setting parameters from sigrok
 
 // A complete sample loop takes about 8000 cycles, will not go faster
-#define COUNT_FOR_SAMPLE 18000
+#define COUNT_FOR_SAMPLE 1600000*0.01
+
+int ccout_delay=COUNT_FOR_SAMPLE;
+
+void setTimescale(float scale){
+
+  ccout_delay=1600000*scale;  // 160
+  printf("ccount_delay=%d\n",ccout_delay);
+
+}
+
+
 
 
 // This function can be used to find the true value for V_REF
@@ -184,7 +205,7 @@ uint16_t* get_digital_values() {
     return digital_in_values;
 }
 
-
+//int time_called=0;;
 void sample_thread(void *param) {
 
     TaskHandle_t *notify_task=(TaskHandle_t *)param;
@@ -208,7 +229,7 @@ void sample_thread(void *param) {
 
     uint32_t ccount;
 
-    uint32_t accumulated_ccount=0;
+    int accumulated_ccount=0;
     // Initate
     uint32_t test=get_delta();
     //printf("%d\n",test);
@@ -227,16 +248,22 @@ void sample_thread(void *param) {
 
     sample_point=0;
     while (sample_point<NUM_SAMPLES) {
-        while (accumulated_ccount<COUNT_FOR_SAMPLE) {
-            vTaskDelay(1 / portTICK_PERIOD_MS);
+        while (accumulated_ccount<ccout_delay) {
+            taskYIELD();
             accumulated_ccount+=get_delta();
         }
+        // Max digital..
         voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+
         //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
 
         digital_in_values[sample_point]=parallel_read();
         analouge_in_values[sample_point++]=voltage;
-        accumulated_ccount-=COUNT_FOR_SAMPLE;
+        //if (time_called++%100==0) {
+        //    printf("-%d\n",accumulated_ccount);    
+        //}
+
+        accumulated_ccount-=ccout_delay;
     }
 
 #if USE_SEMA
@@ -255,6 +282,7 @@ return;
 void start_sampling() {
 
     if (xSemaphore==NULL) {
+        setup_digital();
         xSemaphore = xSemaphoreCreateMutex();
     }
 
