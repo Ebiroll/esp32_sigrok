@@ -9,7 +9,7 @@ Use pulseview to get the graphical input.
 
 # Quickstart
 The different options as described below are defined in the file app-config.h
-The default configuration is to use SUMP over UART
+The default configuration is to use rigol-ds over ethernet port 5555
 Go to the configuration options and set ssid and password
     make menuconfig 
     Wifi and TFT Configuration  --->
@@ -27,7 +27,7 @@ Also set
 
 Connect PIN 18-(2400 Baud UART output) to pin 12,13 or 14
 Then start pulseview 
-pulseview -d rigol-ds:conn=tcp-raw/127.0.0.1/5555 -l 5
+    pulseview -d rigol-ds:conn=tcp-raw/127.0.0.1/5555 -l 5
 
 Do not use timebase less than 1 ms as timing will not be accurate.
 
