@@ -11,7 +11,7 @@
 
 const int OTA_CONNECTED_BIT = BIT0;
 static const char * TAG = "OTA";
-EventGroupHandle_t ota_event_group;
+extern EventGroupHandle_t ota_event_group;
 /*socket*/
 static int connect_socket = 0;
 
@@ -48,7 +48,6 @@ static esp_err_t event_handler(void *ctx, system_event_t *event)
 
 void initialise_wifi(void)
 {
-	ota_event_group = xEventGroupCreate();
 	
 	tcpip_adapter_init();
 	ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));

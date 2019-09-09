@@ -1,4 +1,7 @@
 build
+bsav
+cbuild
+old_build
 # Object files
 *.o
 *.ko

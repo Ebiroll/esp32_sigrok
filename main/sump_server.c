@@ -266,12 +266,19 @@ static struct netconn * createSumpServer(int port) {
 
     err = netconn_bind(conn, NULL, port);
     if (err != ERR_OK) {
+        printf("Bind failed: err=%d\n",err);
+
         netconn_delete(conn);
         return NULL;
     }
 
+    //printf("start listen\n");
+
 
     netconn_listen(conn);
+
+    //printf("Listen ok!\n");
+
 
     return conn;
 }
@@ -379,7 +386,11 @@ static void sump_server_thread(void *arg) {
     vTaskDelete(NULL);
 }
 
+extern TaskHandle_t xTaskList[20];
+extern uint8_t xtaskListCounter;
+
 void sump_server_init(void) {
     printf("Server thread\n");
-    sys_thread_new("SUMP", sump_server_thread, NULL, 2 * 4096, SUMP_THREAD_PRIO);
+    sys_thread_t tmp=sys_thread_new("SUMP", sump_server_thread, NULL, 2 * 4096, SUMP_THREAD_PRIO);
+    xTaskList[xtaskListCounter]=tmp;
 }

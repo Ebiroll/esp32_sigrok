@@ -228,6 +228,26 @@ uint16_t getSample() &  portc_init(void)
 
 For analog data try the rigol-ds over wifi on port 5555.
 
+# QEMU 
+SCPI on network, works well in QEMU, but over wifi with esp-idf lwip netconn is broken. 
+The old file scpi_server.c is kept but the new file is called scpi_socl_server.c
+Add #define RUN_IN_QEMU 1 in app-config.h
+
+    xtensa-softmmu/qemu-system-xtensa -d guest_errors,unimp  -cpu esp32 -M esp32 -m 4M -net nic,model=vlan0 -net user,id=simnet,ipver4=on,net=192.168.4.0/24,host=192.168.4.40,hostfwd=tcp::5555-192.168.4.3:5555  -net dump,file=/tmp/vm0.pcap  -s    > io.txt
+
+And client can be run as,
+
+    ./olas-cli -d rigol-ds:conn=tcp-raw/127.0.0.1/5555  -l 5    --scan
+
+# OTA updates,
+
+If you enable Partition Table (Factory app, two OTA definitions)  
+You can update the application with, change according to your IP
+
+    curl 192.168.1.111:8032 --data-binary @- < build/sigrok.bin
+
+
+
 # Command line run
 When developing, this is useful and repeatable
 

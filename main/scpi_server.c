@@ -33,6 +33,7 @@
  *
  *
  */
+#if 0
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,7 +57,7 @@
 #define CONTROL_PORT 5556
 
 
-#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 5)
+#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 8)
 
 #define SCPI_MSG_TIMEOUT                0
 #define SCPI_MSG_TEST                   1
@@ -122,11 +123,12 @@ size_t SCPI_Write(scpi_t * context, const char * data, size_t len) {
 }
 
 scpi_result_t SCPI_Flush(scpi_t * context) {
+    //printf("SCPI_Flush\n");
     if (context->user_context != NULL) {
         user_data_t * u = (user_data_t *) (context->user_context);
         if (u->io) {
-            SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
-            SCPI_outputBuffer_idx++;
+            //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
+            //SCPI_outputBuffer_idx++;
             //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0; 
             //SCPI_outputBuffer_idx++;
             int tmp=SCPI_outputBuffer_idx;
@@ -174,7 +176,7 @@ scpi_result_t SCPI_Control(scpi_t * context, scpi_ctrl_name_t ctrl, scpi_reg_val
 
 scpi_result_t SCPI_Reset(scpi_t * context) {
     (void) context;
-    iprintf("**Reset\r\n");
+    printf("**Reset\r\n");
     return SCPI_RES_OK;
 }
 
@@ -216,7 +218,6 @@ void scpi_netconn_callback(struct netconn * conn, enum netconn_evt evt, u16_t le
     queue_event_t msg;
     (void) len;
 
-    //printf("scpi_netconn_callback\n");
 
     if (evt == NETCONN_EVT_RCVPLUS) {
         msg.cmd = SCPI_MSG_TEST;
@@ -230,6 +231,10 @@ void scpi_netconn_callback(struct netconn * conn, enum netconn_evt evt, u16_t le
             msg.cmd = SCPI_MSG_CONTROL_IO_LISTEN;
         }
         xQueueSend(user_data.evtQueue, &msg, 1000);
+    } else if (evt == NETCONN_EVT_RCVMINUS) {
+         if (conn == user_data.io) {
+             printf(".\n");
+         }
     }
 }
 
@@ -237,7 +242,7 @@ static struct netconn * createServer(int port) {
     struct netconn * conn;
     err_t err;
 
-    //iprintf("creating server: %d\n",port);
+    printf("creating spci server: %d\n",port);
 
     conn = netconn_new_with_callback(NETCONN_TCP, scpi_netconn_callback);
     if (conn == NULL) {
@@ -293,7 +298,7 @@ static int processSrqIoListen(user_data_t * user_data) {
             netconn_delete(user_data->control_io);
         } else {
             /* control connection established */
-            iprintf("***Control Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));
+            printf("***Control Connection established %s\r\n", inet_ntoa(newconn->pcb.ip->remote_ip));
             user_data->control_io = newconn;
         }
     }
@@ -333,6 +338,8 @@ static int processIo(user_data_t * user_data) {
     netbuf_data(inbuf, (void**) &buf, &buflen);
 
     if (buflen > 0) {
+        buf[buflen]=0;
+        printf("%s",buf);
         SCPI_Input(&scpi_context, buf, buflen);
     } else {
         /* goto fail2; */
@@ -364,7 +371,12 @@ static int processSrqIo(user_data_t * user_data) {
 
     netbuf_data(inbuf, (void**) &buf, &buflen);
 
+
     if (buflen > 0) {
+        buf[buflen]=0;
+        printf("i%s",buf);
+        SCPI_Input(&scpi_context, buf, buflen);
+
         /* TODO process control */
     } else {
         /* goto fail2; */
@@ -411,6 +423,7 @@ static void scpi_server_thread(void *arg) {
         waitServer(&user_data, &evt);
 
         if (evt.cmd == SCPI_MSG_TIMEOUT) { /* timeout */
+            printf("Timeout\n");
             SCPI_Input(&scpi_context, NULL, 0);
         }
 
@@ -443,7 +456,14 @@ static void scpi_server_thread(void *arg) {
     vTaskDelete(NULL);
 }
 
+extern TaskHandle_t xTaskList[20];
+extern uint8_t xtaskListCounter;
+
+
 void scpi_server_init(TaskHandle_t *pvCreatedTask) {
-    //printf("Server thread\n");
-    sys_thread_new("SCPI", scpi_server_thread, NULL, 4 * DEFAULT_THREAD_STACKSIZE, SCPI_THREAD_PRIO);
+    printf("scpi server thread\n");
+    sys_thread_t tmp=sys_thread_new("SCPI", scpi_server_thread, NULL, 5 * DEFAULT_THREAD_STACKSIZE, SCPI_THREAD_PRIO);
+    xTaskList[xtaskListCounter]=tmp;
+
 }
+#endif

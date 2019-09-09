@@ -738,8 +738,108 @@ static scpi_result_t wav_stat(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+static scpi_result_t query_wav_yinc(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0.000000e+00");
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_wav_yor(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "-50");
+
+    return SCPI_RES_OK;
+}
 
 
+/*
+**
+ * *ESE
+ * @param context
+ * @return 
+ *
+scpi_result_t SCPI_CoreEse(scpi_t * context) {
+    int32_t new_ESE;
+    if (SCPI_ParamInt32(context, &new_ESE, TRUE)) {
+        SCPI_RegSet(context, SCPI_REG_ESE, (scpi_reg_val_t) new_ESE);
+        return SCPI_RES_OK;
+    }
+    return SCPI_RES_ERR;
+}
+*/
+
+int32_t memLen=1400;
+
+
+static scpi_result_t set_acq_mem(scpi_t * context) {
+
+
+    if (SCPI_ParamInt32(context, &memLen, TRUE)) {
+        printf("NEW mem depth %d\r\n",memLen);
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t query_acq_mem(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "1400");
+
+    return SCPI_RES_OK;
+
+}
+
+
+//const char *list[]={"BYTE"};
+
+static scpi_result_t set_wav_form(scpi_t * context) {
+    char *result;
+    size_t len;
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+
+// NORM, MAXimum,RAW
+static scpi_result_t set_wav_mode(scpi_t * context) {
+    char *result;
+    size_t len;
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+
+// :WAV:SOUR CHAN1
+// :WAV:SOUR LA
+static scpi_result_t set_wav_source(scpi_t * context) {
+    char *result;
+    size_t len;
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+// ON or OFF
+static scpi_result_t chan_la_disp0(scpi_t * context) {
+    char *result;
+    size_t len;
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
 
 
 const scpi_command_t scpi_commands[] = {
@@ -819,13 +919,13 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = ":LA:STAT?", .callback = la_stat_query,},
 
     { .pattern = ":LA:DIG0:DISP?", .callback = chan_disp_on,},
-    { .pattern = ":LA:DIG1:DISP?", .callback = chan_disp_off,},
-    { .pattern = ":LA:DIG2:DISP?", .callback = chan_disp_off,},
-    { .pattern = ":LA:DIG3:DISP?", .callback = chan_disp_off,},
-    { .pattern = ":LA:DIG4:DISP?", .callback = chan_disp_off,},
-    { .pattern = ":LA:DIG5:DISP?", .callback = chan_disp_off,},
-    { .pattern = ":LA:DIG6:DISP?", .callback = chan_disp_off,},
-    { .pattern = ":LA:DIG7:DISP?", .callback = chan_disp_off,},
+    { .pattern = ":LA:DIG1:DISP?", .callback = chan_disp_on,},
+    { .pattern = ":LA:DIG2:DISP?", .callback = chan_disp_on,},
+    { .pattern = ":LA:DIG3:DISP?", .callback = chan_disp_on,},
+    { .pattern = ":LA:DIG4:DISP?", .callback = chan_disp_on,},
+    { .pattern = ":LA:DIG5:DISP?", .callback = chan_disp_on,},
+    { .pattern = ":LA:DIG6:DISP?", .callback = chan_disp_on,},
+    { .pattern = ":LA:DIG7:DISP?", .callback = chan_disp_on,},
     { .pattern = ":LA:DIG8:DISP?", .callback = chan_disp_off,},
     { .pattern = ":LA:DIG9:DISP?", .callback = chan_disp_off,},
     { .pattern = ":LA:DIG10:DISP?", .callback = chan_disp_off,},
@@ -836,9 +936,32 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = ":LA:DIG15:DISP?", .callback = chan_disp_off,},
     { .pattern = ":LA:DIG16:DISP?", .callback = chan_disp_off,},
 
+
+   { .pattern = ":LA:DIG0:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG1:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG2:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG3:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG4:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG5:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG7:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG8:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG9:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG10:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG11:DISP", .callback = chan_la_disp0,},
+   { .pattern = ":LA:DIG12:DISP", .callback = chan_la_disp0,},
     
     { .pattern = "WAV:YREF?", .callback = wav_yref,},
     { .pattern = "WAV:STAT?", .callback = wav_stat,},
+    { .pattern = "WAV:FORM", .callback = set_wav_form,},
+    { .pattern = ":WAV:MODE", .callback = set_wav_mode,},
+
+    // NORM
+    { .pattern = "WAV:SOUR", .callback = set_wav_source,},
+
+    { .pattern = ":WAV:YINC?", .callback = query_wav_yinc,},
+    { .pattern = ":WAV:YOR?", .callback = query_wav_yor,},
+
+    
 
 
 
@@ -885,7 +1008,10 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "D13:DISP?", .callback = chan_disp_off,},
     { .pattern = "D14:DISP?", .callback = chan_disp_off,},
     { .pattern = "D15:DISP?", .callback = chan_disp_off,},
-
+    //ACQ:MDEP?          //asks scope for mem depth or number of points. 
+    // https://rigol.desk.com/customer/en/portal/articles/2726897-deep-memory-binary-data-collection-and-conversion
+    { .pattern = "ACQ:MDEP", .callback = set_acq_mem,},
+    { .pattern = "ACQ:MDEP?", .callback = query_acq_mem,},
     
     /* {.pattern = "STATus:OPERation?", .callback = scpi_stub_callback,}, */
     /* {.pattern = "STATus:OPERation:EVENt?", .callback = scpi_stub_callback,}, */

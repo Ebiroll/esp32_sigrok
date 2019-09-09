@@ -42,6 +42,12 @@ SOFTWARE.
 #include "driver/i2s.h"
 #include "driver/adc.h"
 #include "app-config.h"
+#include "Header.h"
+#include "ota_server.h"
+
+#ifdef RUN_IN_QEMU
+#include "emul_ip.h"
+#endif
 
 #ifdef CONFIG_EXAMPLE_USE_TFT
 #include "tftspi.h"
@@ -62,8 +68,39 @@ static const char *TAG = "sigrok";
 
 TaskHandle_t xHandlingTask;
 
+EventGroupHandle_t ota_event_group;
+
 #define EXAMPLE_WIFI_SSID CONFIG_WIFI_SSID
 #define EXAMPLE_WIFI_PASS CONFIG_WIFI_PASSWORD
+
+
+TaskHandle_t xTaskList[20];
+uint8_t xtaskListCounter = 0;
+
+xTaskHandle TaskHandle_tmp;
+
+ void KillAllThreads(void)
+ {
+    uint8_t list;
+
+    printf("\nKilling A Total of %u Threads\r\n", xtaskListCounter);
+
+    for(list=0; list < xtaskListCounter; list++)
+    {
+      // Use the handle to delete the task.
+      if( xTaskList[list] != NULL )
+      {
+          printf("Killed Task[%u] Complete\r\n", list);
+          vTaskDelete( xTaskList[list] );
+      }
+      else
+      {
+          printf("Could not Kill Task[%u] \r\n", list);
+      }
+    }
+ }
+
+
 
 #define BUF_SIZE 512
 
@@ -150,7 +187,25 @@ static void uartECHOTask(void *inpar) {
 
 esp_err_t event_handler(void *ctx, system_event_t *event)
 {
-    return ESP_OK;
+	switch (event->event_id)
+	{
+	case SYSTEM_EVENT_STA_START:
+		esp_wifi_connect();
+        printf("Connectiing To SSID:%s : Pass:%s\r\n", CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
+		break;
+	case SYSTEM_EVENT_STA_GOT_IP:
+        printf("got ip:%s\r\n",	ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
+		xEventGroupSetBits(ota_event_group, OTA_CONNECTED_BIT);
+		break;
+	case SYSTEM_EVENT_STA_DISCONNECTED:
+        printf("SYSTEM_EVENT_STA_DISCONNECTED\r\n");
+		esp_wifi_connect();
+		xEventGroupClearBits(ota_event_group, OTA_CONNECTED_BIT);
+		break;
+	default:
+		break;
+	}
+	return ESP_OK;
 }
 
 // Similar to uint32_t system_get_time(void)
@@ -433,7 +488,15 @@ void app_main(void)
     // Test analog thread
     xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, &xHandlingTask, 20, NULL, 0);
 #endif
+ota_event_group = xEventGroupCreate();
 
+#if RUN_IN_QEMU
+   if (is_running_qemu()) {
+          tcpip_adapter_init();
+          ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
+	      xTaskCreatePinnedToCore(task_lwip_init, "loop", 3*4096, NULL, 14, NULL, 0);
+    }
+#else
 #if defined(SUMP_ON_NETWORK) ||  defined (SCPI_ON_NETWORK) || defined(DEBUG_SUMP)
     tcpip_adapter_init();
     ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
@@ -454,9 +517,15 @@ void app_main(void)
 
   
 #endif
+#endif
 
-    size_t free8start=heap_caps_get_free_size(MALLOC_CAP_8BIT);
-    size_t free32start=heap_caps_get_free_size(MALLOC_CAP_32BIT);
+
+// Start OTA Server
+#ifdef OTA_RUN_SERVER
+	xTaskCreate(&ota_server_task, "ota_server_task", 4096, NULL, 15, NULL);
+#endif
+    //size_t free8start=heap_caps_get_free_size(MALLOC_CAP_8BIT);
+    //size_t free32start=heap_caps_get_free_size(MALLOC_CAP_32BIT);
     //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
@@ -474,13 +543,13 @@ void app_main(void)
 
 #if 0
     // RGB leds on wrover kit
-        gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
-        gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
+    gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
+    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
 
-	    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-		gpio_set_level(GPIO_NUM_0, 0);
-        gpio_set_level(GPIO_NUM_2, 0);
-	    gpio_set_level(GPIO_NUM_4, 0);
+    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
+    gpio_set_level(GPIO_NUM_0, 0);
+    gpio_set_level(GPIO_NUM_2, 0);
+    gpio_set_level(GPIO_NUM_4, 0);
 #endif
 
 #ifdef RMT_PULSES
@@ -491,7 +560,9 @@ void app_main(void)
 #ifdef UART_TEST_OUTPUT
     // To look at test UART data 2400 Baud on pin 18
     init_uart_1();
-    xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, 0);
+    xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, NULL, &TaskHandle_tmp);
+    xTaskList[xtaskListCounter++] = TaskHandle_tmp;
+
 #endif
 
     // Analouge out, however this interferes with analogue in
@@ -499,13 +570,16 @@ void app_main(void)
 
 #ifdef CONFIG_EXAMPLE_USE_TFT
     tft_init();
-    xTaskCreatePinnedToCore(&tft_trig_task, "trig", 4096, NULL, 20, &xHandlingTask, 0);
+    xTaskCreatePinnedToCore(&tft_trig_task, "trig", 4096, NULL, 20, &xHandlingTask, &TaskHandle_tmp);
+    xTaskList[xtaskListCounter++] = TaskHandle_tmp;
 #endif
 
 #ifdef SCPI_ON_NETWORK
     scpi_server_init(&xHandlingTask);
 #endif
+#if defined(SUMP_ON_NETWORK) || defined(SUMP_OVER_UART)
     sump_init();
+#endif
 #if defined(SUMP_ON_NETWORK) || defined(DEBUG_SUMP)
     sump_server_init();
 #endif

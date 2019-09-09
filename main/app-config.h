@@ -1,10 +1,14 @@
 /// CHANGE CONFIGURATION HERE!!
 #undef CONFIG_EXAMPLE_USE_TFT
-#define SUMP_OVER_UART 1
-#undef  SCPI_ON_NETWORK
-#undef SUMP_ON_NETWORK
-#undef DEBUG_SUMP 
-#define DEBUG_LOG_ENABLE 0
+#undef SUMP_OVER_UART
+//#define SUMP_OVER_UART 1 
+#define  SCPI_ON_NETWORK 1
+//#define  SUMP_ON_NETWORK 1
+#undef  DEBUG_SUMP 
+//#define DEBUG_LOG_ENABLE 1
+//#define OTA_RUN_SERVER 1
 
-#define UART_TEST_OUTPUT 1
+//#define UART_TEST_OUTPUT 1
 #undef RMT_PULSES
+
+//#define RUN_IN_QEMU 1
