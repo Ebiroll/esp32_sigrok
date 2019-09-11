@@ -7,7 +7,7 @@
 #include <esp_err.h>
 #include "esp_adc_cal.h"
 #include "app-config.h"
-
+#include "sdkconfig.h"
 #define USE_SEMA 0
 
 
@@ -25,7 +25,14 @@ void setup_digital() {
         gpio_set_direction(PARALLEL_0 +i,GPIO_MODE_INPUT);
         gpio_set_pull_mode(PARALLEL_0 +i,GPIO_FLOATING);
 #endif
-    } else {
+    } else if (PARALLEL_0 +i == PULSE_PIN) 
+    {
+#ifndef RMT_PULSES
+        gpio_set_direction(PARALLEL_0 +i,GPIO_MODE_INPUT);
+        gpio_set_pull_mode(PARALLEL_0 +i,GPIO_FLOATING);
+#endif
+     }
+     else {
         gpio_set_direction( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_MODE_INPUT);
         gpio_set_pull_mode( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_FLOATING);
     }
@@ -67,6 +74,10 @@ int analouge_in_values[NUM_SAMPLES];
 
 uint16_t digital_in_values[NUM_SAMPLES];
 
+// Every 20 th value is the clock count
+uint16_t cc_and_digital[NUM_SAMPLES*10];
+
+
 int sample_point;
 
 
@@ -77,14 +88,14 @@ SemaphoreHandle_t xSemaphore = NULL;
 // Also allow setting parameters from sigrok
 
 // A complete sample loop takes about 8000 cycles, will not go faster
-#define COUNT_FOR_SAMPLE 1600000*0.01
+#define COUNT_FOR_SAMPLE CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ * 10000*0.01
 
-int ccout_delay=COUNT_FOR_SAMPLE;
+int ccount_delay=COUNT_FOR_SAMPLE;
 
 void setTimescale(float scale){
 
-  ccout_delay=1600000*scale;  // 160
-  printf("ccount_delay=%d\n",ccout_delay);
+  ccount_delay= CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ *10000*scale;  // 160
+  printf("ccount_delay=%d\n",ccount_delay);
 
 }
 
@@ -202,7 +213,26 @@ uint8_t* get_values() {
 };
 
 uint16_t* get_digital_values() {
-    return digital_in_values;
+    if (ccount_delay<8000) { 
+        // Resample to desired rate
+        uint32_t totalClockcount=0;
+        int sampleIx=0;
+        uint32_t oneSample_time=0;
+        // First time around we get a cache miss, then delays becomes stable
+        for (int sample_point=40;sample_point<NUM_SAMPLES*9 && sampleIx<NUM_SAMPLES;sample_point+=20) {
+            oneSample_time=cc_and_digital[sample_point+20]/19;
+            for (int j=1;j<20;j++) {
+                totalClockcount+=oneSample_time;
+                if(totalClockcount>(2*ccount_delay*sampleIx)) {
+                       digital_in_values[sampleIx]=cc_and_digital[sample_point+j];
+                        printf(" %d-",j); 
+                        sampleIx++;
+                }
+            }       
+            printf(" %d %d\n",sampleIx,cc_and_digital[sample_point]);
+        }
+    }
+   return digital_in_values;
 }
 
 //int time_called=0;;
@@ -246,24 +276,68 @@ void sample_thread(void *param) {
     }
 #endif
 
+
+
     sample_point=0;
-    while (sample_point<NUM_SAMPLES) {
-        while (accumulated_ccount<ccout_delay) {
-            taskYIELD();
-            accumulated_ccount+=get_delta();
+    test=get_delta();
+
+    if (ccount_delay<8000) { 
+        printf("-----------------------\n");
+        while (sample_point<NUM_SAMPLES*9) {
+
+            // Every 20 th value is the lower 16 bits of the clock count
+            test=get_delta();
+            cc_and_digital[sample_point]= test & 0xffff;
+            //digital_in_values[sample_point+1]= test >> 16;
+
+            cc_and_digital[sample_point+1]=parallel_read();
+            cc_and_digital[sample_point+2]=parallel_read();
+            cc_and_digital[sample_point+3]=parallel_read();
+            cc_and_digital[sample_point+4]=parallel_read();
+            cc_and_digital[sample_point+5]=parallel_read();
+            cc_and_digital[sample_point+6]=parallel_read();
+            cc_and_digital[sample_point+7]=parallel_read();
+            cc_and_digital[sample_point+8]=parallel_read();
+            cc_and_digital[sample_point+9]=parallel_read();
+            cc_and_digital[sample_point+10]=parallel_read();
+            cc_and_digital[sample_point+11]=parallel_read();
+            cc_and_digital[sample_point+12]=parallel_read();
+            cc_and_digital[sample_point+13]=parallel_read();
+            cc_and_digital[sample_point+14]=parallel_read();
+            cc_and_digital[sample_point+15]=parallel_read();
+            cc_and_digital[sample_point+16]=parallel_read();
+            cc_and_digital[sample_point+17]=parallel_read();
+            cc_and_digital[sample_point+18]=parallel_read();
+            cc_and_digital[sample_point+19]=parallel_read();
+
+            sample_point+=20;
         }
-        // Max digital..
-        voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
-
-        //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
-
+    } else {
+ 
+        sample_point=0;
+        // cache
         digital_in_values[sample_point]=parallel_read();
-        analouge_in_values[sample_point++]=voltage;
-        //if (time_called++%100==0) {
-        //    printf("-%d\n",accumulated_ccount);    
-        //}
+        digital_in_values[NUM_SAMPLES/2]=parallel_read();
 
-        accumulated_ccount-=ccout_delay;
+        while (sample_point<NUM_SAMPLES) {
+            while (accumulated_ccount<ccount_delay) {
+                taskYIELD();
+                accumulated_ccount+=get_delta();
+            }
+            // Max digital..
+            voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+
+            //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
+
+            digital_in_values[sample_point]=parallel_read();
+            sample_point++;
+            //analouge_in_values[sample_point++]=voltage;
+            //if (time_called++%100==0) {
+            //    printf("-%d\n",accumulated_ccount);    
+            //}
+
+            accumulated_ccount-=ccount_delay;
+        }
     }
 
 #if USE_SEMA

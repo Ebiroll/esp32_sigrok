@@ -12,7 +12,9 @@
 #define UART_OUTPUT_PIN 18
 #define UART_RX_PIN 19
 
-#undef RMT_PULSES
+#define PULSE_PIN 17
+#define RMT_PULSES 1
+//#undef RMT_PULSES
 
-//#define RUN_IN_QEMU 1
+#define RUN_IN_QEMU 0
 

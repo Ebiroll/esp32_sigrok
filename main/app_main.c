@@ -2,7 +2,7 @@
 /*
 MIT License
 
-Copyright (c) 2017 Olof Astrand (Ebiroll)
+Copyright (c) 2019 Olof Astrand (Ebiroll)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -228,7 +228,7 @@ void send_remote_pulses() {
 
   config.rmt_mode = RMT_MODE_TX;
   config.channel = RMT_CHANNEL_0;
-  config.gpio_num = 17; //STEP_PIN;, we use pin 17 directly, this way no cable is needed.
+  config.gpio_num = PULSE_PIN; //STEP_PIN;, we use pin 17 directly, this way no cable is needed.
   config.mem_block_num = 1;
   config.tx_config.loop_en = 1;
   config.tx_config.carrier_en = 0;
@@ -240,9 +240,9 @@ void send_remote_pulses() {
   rmt_config(&config);
   rmt_driver_install(config.channel, 0, 0);  //  rmt_driver_install(rmt_channel_t channel, size_t rx_buf_size, int rmt_intr_num)
    
-  items[0].duration0 = 30000;  // 30 ms
+  items[0].duration0 = 10000;  // 10 ms (30)
   items[0].level0 = 1;
-  items[0].duration1 = 15000;   // 15 ms
+  items[0].duration1 = 5000;   // 5 ms  (15)
   items[0].level1 = 0;  
 
 }
@@ -555,6 +555,7 @@ ota_event_group = xEventGroupCreate();
 #endif
 
 #ifdef RMT_PULSES
+    gpio_set_direction(PULSE_PIN, GPIO_MODE_OUTPUT);
     send_remote_pulses();
     rmt_write_items(config.channel, items, 1, 0);
 #endif
