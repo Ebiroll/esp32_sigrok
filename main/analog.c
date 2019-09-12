@@ -9,7 +9,7 @@
 #include "app-config.h"
 #include "sdkconfig.h"
 #define USE_SEMA 0
-
+#include "soc/efuse_reg.h"
 
 #define PARALLEL_0  12
 
@@ -75,7 +75,7 @@ int analouge_in_values[NUM_SAMPLES];
 uint16_t digital_in_values[NUM_SAMPLES];
 
 // Every 20 th value is the clock count
-uint16_t cc_and_digital[NUM_SAMPLES*10];
+uint16_t cc_and_digital[NUM_SAMPLES*20];
 
 
 int sample_point;
@@ -214,22 +214,32 @@ uint8_t* get_values() {
 
 uint16_t* get_digital_values() {
     if (ccount_delay<8000) { 
+#if 0
+        int sampleIx=0;
+        for (int sample_point=0;sample_point<NUM_SAMPLES;sample_point++) {
+            if (sample_point%20!=0) {
+                digital_in_values[sampleIx++]=cc_and_digital[sample_point];
+            } 
+        }
+    }
+#endif
         // Resample to desired rate
-        uint32_t totalClockcount=0;
         int sampleIx=0;
         uint32_t oneSample_time=0;
+        int delta=0;
         // First time around we get a cache miss, then delays becomes stable
-        for (int sample_point=40;sample_point<NUM_SAMPLES*9 && sampleIx<NUM_SAMPLES;sample_point+=20) {
+        for (int sample_point=40;sample_point<(NUM_SAMPLES*19) && (sampleIx<NUM_SAMPLES);sample_point+=20) {
             oneSample_time=cc_and_digital[sample_point+20]/19;
             for (int j=1;j<20;j++) {
-                totalClockcount+=oneSample_time;
-                if(totalClockcount>(2*ccount_delay*sampleIx)) {
+                delta+=oneSample_time;
+                if(delta>ccount_delay) {
                        digital_in_values[sampleIx]=cc_and_digital[sample_point+j];
-                        printf(" %d-",j); 
-                        sampleIx++;
+                       //printf(" %d-",j); 
+                       sampleIx++;
+                       delta-=ccount_delay;
                 }
             }       
-            printf(" %d %d\n",sampleIx,cc_and_digital[sample_point]);
+            //printf(" %d %d\n",sampleIx,cc_and_digital[sample_point]);
         }
     }
    return digital_in_values;
@@ -239,6 +249,10 @@ uint16_t* get_digital_values() {
 void sample_thread(void *param) {
 
     TaskHandle_t *notify_task=(TaskHandle_t *)param;
+
+    for (int i=0;i<NUM_SAMPLES;i++) {
+        digital_in_values[i]=0;
+    }
 
     //Init ADC and Characteristics
     esp_adc_cal_characteristics_t characteristics;
@@ -283,35 +297,68 @@ void sample_thread(void *param) {
 
     if (ccount_delay<8000) { 
         printf("-----------------------\n");
-        while (sample_point<NUM_SAMPLES*9) {
+
+        // Disable  C callable interrupts 
+        //portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
+        //taskENTER_CRITICAL(&myMutex);
+        while (sample_point<NUM_SAMPLES*19) {
 
             // Every 20 th value is the lower 16 bits of the clock count
             test=get_delta();
             cc_and_digital[sample_point]= test & 0xffff;
             //digital_in_values[sample_point+1]= test >> 16;
-
+#define DUMMY EFUSE_BLK0_RDATA3_REG
+//GPIO_STRAP_REG
+            // The dummy reads are to create a delay
+            uint32_t dummy = REG_READ(DUMMY);
             cc_and_digital[sample_point+1]=parallel_read();
+            dummy = REG_READ(DUMMY);
             cc_and_digital[sample_point+2]=parallel_read();
+            dummy = REG_READ(DUMMY);
             cc_and_digital[sample_point+3]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+4]=parallel_read();
+            dummy = REG_READ(DUMMY);                   
             cc_and_digital[sample_point+5]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+6]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+7]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+8]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+9]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+10]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+11]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+12]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+13]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+14]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+15]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+16]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+17]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+18]=parallel_read();
+            dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+19]=parallel_read();
+
+            // TDOD, RAW analouge values
+            //voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+            //analouge_in_values[sample_point/20]=voltage;
+            //taskYIELD();
 
             sample_point+=20;
         }
+        //end critical section
+        //taskEXIT_CRITICAL(&myMutex);
+
     } else {
  
         sample_point=0;
@@ -330,8 +377,8 @@ void sample_thread(void *param) {
             //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
 
             digital_in_values[sample_point]=parallel_read();
-            sample_point++;
-            //analouge_in_values[sample_point++]=voltage;
+            //sample_point++;
+            analouge_in_values[sample_point++]=voltage;
             //if (time_called++%100==0) {
             //    printf("-%d\n",accumulated_ccount);    
             //}

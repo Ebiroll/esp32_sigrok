@@ -34,6 +34,8 @@ Do not use timebase less than 1 ms as timing will not be accurate.
 
 # Sump
 You have to change configuration in app-config.h to get this to work
+#define SUMP_OVER_UART 1
+You will also have to go through the code.
 
 You might have to press scan a few times until the ESP32 appears.
 Set samplingrate to 10 KHZ 
