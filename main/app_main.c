@@ -143,7 +143,7 @@ static void uartWRITETask(void *inpar) {
 }
 #endif
 
-#if 0
+#if defined(SUMP_OVER_UART)
 static void init_uart()
 {
   uart_port_t uart_num = UART_NUM_0;                                     //uart port number
@@ -165,6 +165,10 @@ static void init_uart()
   ESP_ERROR_CHECK( uart_driver_install(uart_num, 512 * 4, 512 * 4, 20,  &uart_queue,0));
 
 }
+
+#endif
+
+#if 0
 
 // This task only prints what is received on UART1
 static void uartECHOTask(void *inpar) {
@@ -482,8 +486,10 @@ static void tft_trig_task(void *inpar) {
 void app_main(void)
 {
     nvs_flash_init();
-    //init_uart();
-
+#if defined(SUMP_OVER_UART)
+    init_uart();
+#endif
+    
 #if 0
     xTaskCreatePinnedToCore(&test_sample_task, "test_sample_task", 4096, NULL, 10, &xHandlingTask, 0);
 
