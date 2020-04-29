@@ -1,5 +1,5 @@
 /*
- *  Author: LoBo (loboris@gmail.com, loboris.github)
+*  Author: LoBo (loboris@gmail.com, loboris.github)
  *
  *  Module supporting SPI TFT displays based on ILI9341 & ILI9488 controllers
  * 
@@ -14,7 +14,7 @@
 #include "freertos/task.h"
 #include "esp_heap_caps.h"
 #include "soc/spi_reg.h"
-
+#include "drivers/gpio.h"
 
 // ====================================================
 // ==== Global variables, default values ==============

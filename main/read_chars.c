@@ -36,10 +36,11 @@ char *pollLine(uart_port_t uart,char *line,int len) {
 			FIFO=(uint32_t*)0x3ff50000;
 			RX_STATUS=(uint32_t*)0x3ff5001c;
 		break;
-		case UART_NUM_2:
-			FIFO=(uint32_t*)0x3ff6e000;	
-			RX_STATUS=(uint32_t*)0x3ff6e01c;			
-		break;		
+
+		//case UART_NUM_2:
+		//	FIFO=(uint32_t*)0x3ff6e000;	
+		//	RX_STATUS=(uint32_t*)0x3ff6e01c;			
+		//break;		
 		default:
 		break;
 	}

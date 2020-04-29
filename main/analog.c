@@ -5,13 +5,20 @@
 #include "freertos/task.h"
 #include <driver/gpio.h>
 #include <esp_err.h>
-#include "esp_adc_cal.h"
+//#include "esp_adc_cal.h"
 #include "app-config.h"
 #include "sdkconfig.h"
 #define USE_SEMA 0
 #include "soc/efuse_reg.h"
 
 #define PARALLEL_0  12
+
+#ifdef CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
+#define CPU_FREQ CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
+#else
+#define CPU_FREQ CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ
+#endif
+
 
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
 
@@ -88,13 +95,13 @@ SemaphoreHandle_t xSemaphore = NULL;
 // Also allow setting parameters from sigrok
 
 // A complete sample loop takes about 8000 cycles, will not go faster
-#define COUNT_FOR_SAMPLE CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ * 10000*0.01
+#define COUNT_FOR_SAMPLE CPU_FREQ * 10000*0.01
 
 int ccount_delay=COUNT_FOR_SAMPLE;
 
 void setTimescale(float scale){
 
-  ccount_delay= CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ *10000*scale;  // 160
+  ccount_delay= CPU_FREQ *10000*scale;  // 160
   printf("ccount_delay=%d\n",ccount_delay);
 
 }
@@ -181,13 +188,18 @@ uint8_t voltage_to_RawByte(uint32_t voltage) {
 int* get_sample_values() {
     /*
     Use this for calibrated values
-    */
+
     esp_adc_cal_characteristics_t characteristics;
     esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
 
+    TODO,
+    Use esp_adc_cal_characterize()
+
+    */
+
     sample_point=0;
     for(int i=0;i<NUM_SAMPLES;i++) {
-        uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
+      uint32_t mv= analouge_in_values[sample_point];  //esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point]	, &characteristics);
         analouge_in_values[sample_point]=mv;
         sample_point++;
     }
@@ -198,6 +210,7 @@ int* get_sample_values() {
 
 
 uint8_t* get_values() {
+  /*
     esp_adc_cal_characteristics_t characteristics;
     esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
 
@@ -207,7 +220,7 @@ uint8_t* get_values() {
         analouge_values[sample_point]=voltage_to_RawByte(mv);
         sample_point++;
     }
-
+  */
     sample_point=0;
     return analouge_values;
 };
@@ -255,11 +268,12 @@ void sample_thread(void *param) {
     }
 
     //Init ADC and Characteristics
+    /*
     esp_adc_cal_characteristics_t characteristics;
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(ADC1_TEST_CHANNEL, ADC_ATTEN_DB_11);
     esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_12, &characteristics);
-
+    */
 #if 0
     uint32_t voltage;
     while(1){
