@@ -51,6 +51,7 @@ libsigrok/src/
 /usr/include/tirpc
 libsigrok
 libsigrok/include/libsigrok/
+/usr/include/libftdi1
 )
 
 set(sigrok_SOURCES
@@ -114,6 +115,7 @@ libsigrok/src/output/chronovu_la8.c
 libsigrok/src/output/csv.c
 libsigrok/src/output/hex.c
 libsigrok/src/output/ols.c
+libsigrok/src/output/wavedrom.c
 libsigrok/src/output/output.c
 libsigrok/src/output/srzip.c
 libsigrok/src/output/wav.c
@@ -126,8 +128,8 @@ libsigrok/src/hardware/openbench-logic-sniffer/api.c
 libsigrok/src/hardware/openbench-logic-sniffer/protocol.c
 libsigrok/src/hardware/rigol-ds/api.c
 libsigrok/src/hardware/rigol-ds/protocol.c
-#libsigrok/src/hardware/pipistrello-ols/api.c
-#libsigrok/src/hardware/pipistrello-ols/protocol.c
+libsigrok/src/hardware/pipistrello-ols/api.c
+libsigrok/src/hardware/pipistrello-ols/protocol.c
 libsigrok/src/driver_list_stop.c
 )
 
@@ -140,6 +142,7 @@ set(cli_SOURCES
  sigrok-cli/options.c
  sigrok-cli/parsers.c
  sigrok-cli/session.c
+  sigrok-cli/output.c
  sigrok-cli/show.c
 )
 
@@ -150,6 +153,7 @@ set(cli_SOURCES
 
 add_definitions(-DQT_NO_KEYWORDS)
 add_definitions(-D__STDC_LIMIT_MACROS)
+add_definitions(-DSC_PACKAGE_VERSION_STRING="test ver")
 add_definitions(-Wall -Wextra)
 #add_definitions(-std=c++11)
 
@@ -179,7 +183,7 @@ ${cli_SOURCES}
 ${sigrok_SOURCES}
 )
 
-target_link_libraries(olas-cli rt tirpc pthread usb-1.0 serialport glib-2.0 m zip)
+target_link_libraries(olas-cli rt tirpc pthread usb-1.0 serialport glib-2.0 m zip ftdi1)
 
 
 
