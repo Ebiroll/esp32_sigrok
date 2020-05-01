@@ -7,7 +7,7 @@ CXX = g++
 LIBS = -lstdc++ 
 
 
-CFLAGS = -g -O3
+CFLAGS = -g -fsanitize=address -std=c++11
 #CFLAGS += `pkg-config --cflags libusb-1.0`
 
 #LIBS += `pkg-config --libs libusb-1.0`

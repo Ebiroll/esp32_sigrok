@@ -8,6 +8,7 @@ TMC_RemoteDevice::TMC_RemoteDevice(uint16_t vendID, uint16_t prodID, const std::
     conn(sockfd),
     seqNum(0)
 {
+#if 0
     // conn.SetBlocking();
     std::vector<uint8_t> bfr(sernum.size() + PKT_HEADER_SIZE);
     std::copy(sernum.begin(), sernum.end(), bfr.begin() + PKT_HEADER_SIZE);
@@ -19,7 +20,10 @@ TMC_RemoteDevice::TMC_RemoteDevice(uint16_t vendID, uint16_t prodID, const std::
     *(uint32_t*)&(bfr)[8] = htonl((uint32_t)vendID << 16 | prodID);
     // *(uint16_t*)&(bfr)[8] = htons(vendID);
     // *(uint16_t*)&(bfr)[10] = htons(prodID);
+
+    // Is this some kind of identify sent??
     conn.SendMessage(&bfr[0], bfr.size());
+#endif
 }
 
 TMC_RemoteDevice::~TMC_RemoteDevice()
@@ -64,9 +68,13 @@ void TMC_RemoteDevice::StartRead(uint8_t * msg, size_t len)
 ssize_t TMC_RemoteDevice::FinishRead(uint8_t * msg, size_t len)
 {
     std::vector<uint8_t> * resp = conn.WaitPopMessage();
-    size_t nbytes = std::min(len, resp->size() - PKT_HEADER_SIZE);
-    std::copy(resp->begin() + PKT_HEADER_SIZE, resp->begin() + PKT_HEADER_SIZE + nbytes, msg);
-    delete resp;
+    size_t nbytes = std::min(len, resp->size());
+    memcpy(msg , &(*resp->begin()) , nbytes);
+
+
+    //size_t nbytes = std::min(len, resp->size() - PKT_HEADER_SIZE);
+    //std::copy(resp->begin() + PKT_HEADER_SIZE, resp->begin() + PKT_HEADER_SIZE + nbytes, msg);
+    //delete resp;
     return nbytes;
 }
 

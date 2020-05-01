@@ -53,7 +53,8 @@ bool FramedConnection::Poll()
         status = recv(sockfd, tmpbuf, 1024, 0);
         
         // Ignore these errors
-        if(status == -1 && (errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK))
+        // 
+        if(status == -1 && (errno == EINTR  || errno == EWOULDBLOCK || errno == EAGAIN))
             continue;
         
         if(status == -1)
@@ -82,13 +83,23 @@ bool FramedConnection::Poll()
             else
             {
                 if(tmpbuf[j] == 0xFF)
-                    escaped = true;
+                    escaped = true; 
+                else if(tmpbuf[j] == 0x0A) {// newline
+                    buffers.push(currentBuffer);
+                     //printf("received: \n");
+                     //for(ssize_t j = 0; j < currentBuffer->size(); ++j)
+                     //    printf(" %02X", (*currentBuffer)[j]);
+                     //printf("\n");
+                    currentBuffer = new std::vector<uint8_t>;
+                }                   
                 else
                     currentBuffer->push_back(tmpbuf[j]);
             }
         }
-    } while(status > 0);
+    } while (/* status > 0 &&*/ (buffers.empty()));
     
+    // Not sure how this is supposed to work.....
+    // buffers.push(currentBuffer);
     return !buffers.empty();
 }
 

@@ -160,7 +160,7 @@ void ScopeRead(size_t size)
     if(scope)
     {
         vector<uint8_t> bfr(size);
-        size_t respLen = scope->Read(&bfr[0], size);
+        size_t respLen = scope->Read(bfr, size);
         std::cout << string(bfr.begin(), bfr.begin() + respLen) << endl;
     }
     else if(verbose)
@@ -213,7 +213,11 @@ int main(int argc, char ** argv)
     atexit(ExitCleanup);
     
     for(int j = 0; j < (sizeof(commands)/sizeof(Command)); ++j)
-        commandMap[commands[j].shortCmd] = commands[j];
+    {
+        Command tmp=commands[j];
+        commandMap.insert ( std::pair<std::string,Command>(commands[j].shortCmd,tmp) );
+    }
+    //    commandMap[commands[j].shortCmd] = commands[j];
     
     int opt, optInd = 0;
     do {
@@ -255,6 +259,7 @@ int main(int argc, char ** argv)
     }
     
     try {
+        serialNum.resize(20);
         // Check commands
 
         r = DoCommands(argc, argv);
@@ -303,7 +308,7 @@ int DoCommands(int argc, char ** argv)
     // Perform commands, or do dry run if scope is NULL
     while(argc)
     {
-        map<string, Command>::iterator cmd = commandMap.find(*argv);
+        auto cmd = commandMap.find(*argv);
         
         if(cmd == commandMap.end())
         {
