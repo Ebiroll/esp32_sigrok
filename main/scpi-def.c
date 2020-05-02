@@ -46,6 +46,9 @@
 #include "analog.h"
 #endif
 
+extern int trig_pin;
+
+
 static scpi_result_t DMM_MeasureVoltageDcQ(scpi_t * context) {
     scpi_number_t param1, param2;
     char bf[15];
@@ -529,6 +532,7 @@ The double quotes are not returned.
 }
 
 
+
 static scpi_result_t trig_edge_source(scpi_t * context) {
 
 /*
@@ -536,7 +540,10 @@ Query
 returns “CH1”, “CH2”, “EXT”, 
 “EXT5”or “DIGITAL”
 */
-    SCPI_ResultMnemonic(context, "CH1");
+    if (trig_pin==1) {
+        SCPI_ResultMnemonic(context, "D1");
+    }
+    SCPI_ResultMnemonic(context, "D0");
 
 
     return SCPI_RES_OK;
@@ -649,11 +656,15 @@ start_sampling();
 return SCPI_RES_OK;
 }
 
+void stop_aquisition();
+
 static scpi_result_t stop_acquisition(scpi_t * context) {
 /*
 The  command  controls  the  oscilloscope  to  stop  acquiring  data.  To  restart  the 
 acquisition, use the :RUN command
 */
+printf("stop\n");
+stop_aquisition();
 return SCPI_RES_OK;
 }
 
@@ -708,7 +719,7 @@ static scpi_result_t wav_data(scpi_t * context) {
     sample_data[5]='0';
     sample_data[6]='0';
     sample_data[7]='1';
-    sample_data[8]='4';
+    sample_data[8]='8';
     sample_data[9]='0';
     sample_data[10]='0';
 
@@ -720,14 +731,17 @@ static scpi_result_t wav_data(scpi_t * context) {
 */
 
 #ifdef START_SAMPLE_TASK
+//
 
 if (readDigital) {
+    printf("DIG\n");
     uint8_t* result=(uint8_t *)get_digital_values();
     for (int i=0;i<1400;i++) {
-        sample_data[i+11]=*result;
+        sample_data[i]=*result;
         result++;
     }
 } else {
+    printf("ANAL\n");
     uint8_t* result=get_values();
     for (int i=4;i<1400;i++) {
         sample_data[i+11]=*result;
@@ -737,14 +751,16 @@ if (readDigital) {
 
 #else
 
-    int fake=25;
+    int fake=0xaa;
     for (int i=0;i<1400;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
-       sample_data[i+11]=fake;
-       fake++;
-       if (fake>225) {
-           fake=25;
+       sample_data[i]=fake;
+       if (i>700) {
+        fake=0x55;
        }
+       //if (fake>225) {
+       //    fake=25;
+       // }
     }
 #endif
 
@@ -800,12 +816,15 @@ scpi_result_t SCPI_CoreEse(scpi_t * context) {
 
 int32_t memLen=1400;
 
+void set_mem_depth(int depth);
+
 
 static scpi_result_t set_acq_mem(scpi_t * context) {
 
 
     if (SCPI_ParamInt32(context, &memLen, TRUE)) {
         printf("NEW mem depth %d\r\n",memLen);
+        set_mem_depth(memLen);
         return SCPI_RES_OK;
     }
 
@@ -815,7 +834,10 @@ static scpi_result_t set_acq_mem(scpi_t * context) {
 
 static scpi_result_t query_acq_mem(scpi_t * context) {
 
-    SCPI_ResultMnemonic(context, "1400");
+    //SCPI_ResultMnemonic(context, "1400");
+
+    SCPI_ResultInt32(context, memLen);
+
 
     return SCPI_RES_OK;
 
@@ -885,6 +907,30 @@ static scpi_result_t set_wav_source(scpi_t * context) {
 
     return SCPI_RES_OK;
 }
+
+
+static scpi_result_t set_trig_edge_source(scpi_t * context) {
+   char *result;
+    size_t len;
+    printf("TRIG ");
+ 
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        if (strncmp(result,"D0",2)==0) 
+        {
+            printf("D0\n");
+            trig_pin=0;
+        } else {
+            trig_pin=atoi(&result[1]);
+            printf("other %d\n",trig_pin);
+        }
+
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+
 
 // ON or OFF
 static scpi_result_t chan_la_disp0(scpi_t * context) {
@@ -1017,6 +1063,8 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "WAV:FORM", .callback = set_wav_form,},
     { .pattern = ":WAV:MODE", .callback = set_wav_mode,},
 
+
+    { .pattern = "TRIG:EDGE:SOUR", .callback = set_trig_edge_source,},
     // NORM
     { .pattern = "WAV:SOUR", .callback = set_wav_source,},
 

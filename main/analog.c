@@ -8,7 +8,7 @@
 //#include "esp_adc_cal.h"
 #include "app-config.h"
 #include "sdkconfig.h"
-#define USE_SEMA 0
+#define USE_SEMA 1
 #include "soc/efuse_reg.h"
 
 #define PARALLEL_0  12
@@ -19,26 +19,39 @@
 #define CPU_FREQ CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ
 #endif
 
+int trig_pin=-1;
 
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
 
 void setup_digital() {
+    // ACHTUNG! Should be 0, but we do this just for testing
   for (int i = 0; i < 16; i++) {
 
-    if (PARALLEL_0 +i == UART_OUTPUT_PIN  || PARALLEL_0 +i == UART_RX_PIN) 
+    if ((PARALLEL_0 +i == UART_OUTPUT_PIN)  || (PARALLEL_0 +i == UART_RX_PIN)) 
     {
-        // If uart outup is enabled, we do not set those pins at input
-#if !UART_TEST_OUTPUT 
+        // If uart output is enabled, we do not set those pins at input
+#ifndef UART_TEST_OUTPUT 
         gpio_set_direction(PARALLEL_0 +i,GPIO_MODE_INPUT);
         gpio_set_pull_mode(PARALLEL_0 +i,GPIO_FLOATING);
+#else
+        printf("No input because of uart testsignal on pin %d D%d!\n",PARALLEL_0 +i,i);
 #endif
     } else if (PARALLEL_0 +i == PULSE_PIN) 
     {
 #ifndef RMT_PULSES
         gpio_set_direction(PARALLEL_0 +i,GPIO_MODE_INPUT);
         gpio_set_pull_mode(PARALLEL_0 +i,GPIO_FLOATING);
+#else
+        printf("No input because of rmt testsignal on pin %d D%d!\n",PARALLEL_0 +i,i);
 #endif
+
      }
+#if 0
+     else if ((PARALLEL_0 +i)==PIXEL_LEDC_PIN)
+     {
+        printf("No input because of pixelclock on pin %d D%d!\n",PARALLEL_0 +i,i);
+     }
+#endif     
      else {
         gpio_set_direction( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_MODE_INPUT);
         gpio_set_pull_mode( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_FLOATING);
@@ -57,8 +70,9 @@ void parallel_set_outputs(void) {
 
 inline uint16_t parallel_read(void) {
   uint32_t input = REG_READ(GPIO_IN_REG);
+  uint16_t ret=input >> PARALLEL_0;
 
-  return (input >> PARALLEL_0);
+  return (ret);
 }
 
 void parallel_write(uint8_t value) {
@@ -227,6 +241,7 @@ uint8_t* get_values() {
 
 uint16_t* get_digital_values() {
     if (ccount_delay<8000) { 
+        printf("RESAMP\n");
 #if 0
         int sampleIx=0;
         for (int sample_point=0;sample_point<NUM_SAMPLES;sample_point++) {
@@ -241,8 +256,8 @@ uint16_t* get_digital_values() {
         uint32_t oneSample_time=0;
         int delta=0;
         // First time around we get a cache miss, then delays becomes stable
-        for (int sample_point=40;sample_point<(NUM_SAMPLES*19) && (sampleIx<NUM_SAMPLES);sample_point+=20) {
-            oneSample_time=cc_and_digital[sample_point+20]/19;
+        for (int sample_point=20;sample_point<(NUM_SAMPLES*19) && (sampleIx<NUM_SAMPLES);sample_point+=20) {
+            oneSample_time=cc_and_digital[sample_point+20]/20;
             for (int j=1;j<20;j++) {
                 delta+=oneSample_time;
                 if(delta>ccount_delay) {
@@ -258,9 +273,24 @@ uint16_t* get_digital_values() {
    return digital_in_values;
 }
 
+static int maxSamples=NUM_SAMPLES;
+
+void set_mem_depth(int depth) {
+    if (depth<NUM_SAMPLES) {
+        maxSamples=depth;
+    }
+}
+
+bool stop_aq=false;
+void stop_aquisition() {
+    stop_aq=true;
+}
+
+
 //int time_called=0;;
 void sample_thread(void *param) {
 
+    stop_aq=false;
     TaskHandle_t *notify_task=(TaskHandle_t *)param;
 
     for (int i=0;i<NUM_SAMPLES;i++) {
@@ -304,9 +334,32 @@ void sample_thread(void *param) {
     }
 #endif
 
-
+#define DUMMY EFUSE_BLK0_RDATA3_REG
 
     sample_point=0;
+
+    test=get_delta();
+
+    int breakout=0;
+    if (trig_pin>=0) {
+        printf("Waiting for trigger %d\n",trig_pin);
+        uint16_t tmp=parallel_read();
+        tmp=parallel_read();
+        uint16_t next=parallel_read();
+
+        while ((((1<<trig_pin) & tmp)==((1<<trig_pin) & next)) && (stop_aq==false)) {
+            uint32_t dummy = REG_READ(DUMMY);
+            // Check if value changed
+            next=parallel_read();
+             if (breakout++>10000) {
+                 next=!tmp;
+             }
+        }
+        printf("Trigged at %d %X %X\n",breakout,tmp,next);
+    }
+
+
+
     test=get_delta();
 
     if (ccount_delay<8000) { 
@@ -321,9 +374,8 @@ void sample_thread(void *param) {
             test=get_delta();
             cc_and_digital[sample_point]= test & 0xffff;
             //digital_in_values[sample_point+1]= test >> 16;
-#define DUMMY EFUSE_BLK0_RDATA3_REG
 //GPIO_STRAP_REG
-            // The dummy reads are to create a delay
+            // The dummy reads are to create a delay and for workaround
             uint32_t dummy = REG_READ(DUMMY);
             cc_and_digital[sample_point+1]=parallel_read();
             dummy = REG_READ(DUMMY);
@@ -363,7 +415,7 @@ void sample_thread(void *param) {
             dummy = REG_READ(DUMMY);          
             cc_and_digital[sample_point+19]=parallel_read();
 
-            // TDOD, RAW analouge values
+            // TDOD, RAW analouge values, this confuses timing
             //voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
             //analouge_in_values[sample_point/20]=voltage;
             //taskYIELD();
@@ -375,15 +427,20 @@ void sample_thread(void *param) {
 
     } else {
  
+         printf("ooooooooooooooooo\n");
+
         sample_point=0;
         // cache
-        digital_in_values[sample_point]=parallel_read();
-        digital_in_values[NUM_SAMPLES/2]=parallel_read();
+        //digital_in_values[sample_point]=parallel_read();
+        //digital_in_values[NUM_SAMPLES/2]=parallel_read();
 
-        while (sample_point<NUM_SAMPLES) {
+        while (sample_point<maxSamples && (stop_aq==false)) {
             while (accumulated_ccount<ccount_delay) {
                 taskYIELD();
                 accumulated_ccount+=get_delta();
+                if (stop_aq==true) {
+                    break;
+                }
             }
             // Max digital..
             voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
@@ -400,6 +457,9 @@ void sample_thread(void *param) {
             accumulated_ccount-=ccount_delay;
         }
     }
+
+    printf("++++++++++++++++++++\n");
+
 
 #if USE_SEMA
     if (got_sem) {

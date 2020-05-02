@@ -44,6 +44,7 @@ SOFTWARE.
 #include "app-config.h"
 #include "Header.h"
 #include "ota_server.h"
+#include "driver/ledc.h"
 
 #ifdef RUN_IN_QEMU
 #include "emul_ip.h"
@@ -113,7 +114,7 @@ static void init_uart_1()
 
 
   uart_config_t uart_config = {
-      .baud_rate = 2400,                    //baudrate was 9600
+      .baud_rate = 9600,                    //baudrate was 9600 (2400=)
       .data_bits = UART_DATA_8_BITS,          //data bit mode
       .parity = UART_PARITY_DISABLE,          //parity mode
       .stop_bits = UART_STOP_BITS_1,          //stop bit mode
@@ -130,15 +131,20 @@ static void init_uart_1()
 }
 
 static void uartWRITETask(void *inpar) {
+  printf("sump UUU");  
   uart_port_t uart_num = UART_NUM_1;    
   echoLine[0]='s';
   echoLine[1]='u';
   echoLine[2]='m';
   echoLine[3]='p';
+  echoLine[4]=' ';
+  echoLine[5]='U';
+  echoLine[6]='U';
+  echoLine[7]='U';
 
   while(true) {
-    (void) uart_write_bytes(uart_num, (const char *)echoLine, 4);
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    (void) uart_write_bytes(uart_num, (const char *)echoLine, 8);
+    vTaskDelay(18 / portTICK_PERIOD_MS);
   }
 }
 #endif
@@ -232,7 +238,7 @@ void send_remote_pulses() {
 
   config.rmt_mode = RMT_MODE_TX;
   config.channel = RMT_CHANNEL_0;
-  config.gpio_num = PULSE_PIN; //STEP_PIN;, we use pin 17 directly, this way no cable is needed.
+  config.gpio_num = PULSE_PIN; 
   config.mem_block_num = 1;
   config.tx_config.loop_en = 1;
   config.tx_config.carrier_en = 0;
@@ -244,9 +250,9 @@ void send_remote_pulses() {
   rmt_config(&config);
   rmt_driver_install(config.channel, 0, 0);  //  rmt_driver_install(rmt_channel_t channel, size_t rx_buf_size, int rmt_intr_num)
    
-  items[0].duration0 = 1000;  // 1 ms (30)
+  items[0].duration0 = 500;  // 0.5 ms (30)
   items[0].level0 = 1;
-  items[0].duration1 = 500;   // 0.5 ms  (15)
+  items[0].duration1 = 250;   // 0.25 ms  (15)
   items[0].level1 = 0;  
 
 }
@@ -482,6 +488,28 @@ static void tft_trig_task(void *inpar) {
 
 #endif
 
+void pwm(int gpioNum, uint32_t frequency) {
+    
+	ledc_timer_config_t timer_conf;
+	timer_conf.duty_resolution    = 2;
+	timer_conf.freq_hz    = frequency;
+	timer_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
+	//timer_conf.timer_num  = LEDC_TIMER_3;
+    timer_conf.clk_cfg = LEDC_AUTO_CLK;
+	ESP_ERROR_CHECK(ledc_timer_config(&timer_conf));
+   
+	ledc_channel_config_t ledc_conf;
+	ledc_conf.channel    = LEDC_CHANNEL_0;
+	ledc_conf.duty       = 2;
+	ledc_conf.gpio_num   = gpioNum;
+    ledc_conf.hpoint = 0;
+	ledc_conf.intr_type  = LEDC_INTR_DISABLE;
+	ledc_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
+	ledc_conf.timer_sel  = LEDC_TIMER_3;
+	ESP_ERROR_CHECK(ledc_channel_config(&ledc_conf));
+
+}
+
 
 void app_main(void)
 {
@@ -538,7 +566,15 @@ ota_event_group = xEventGroupCreate();
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
     //gpio_set_direction(GPIO_NUM_17, GPIO_MODE_OUTPUT);
-    //gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
+    #if 0
+    if (PIXEL_LEDC_PIN==GPIO_NUM_14) {
+        gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
+
+
+        pwm(PIXEL_LEDC_PIN,500000);
+    }
+    #endif
+
     //gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
     //gpio_set_direction(GPIO_NUM_12, GPIO_MODE_OUTPUT);
 
@@ -567,7 +603,7 @@ ota_event_group = xEventGroupCreate();
 #endif
 
 #ifdef UART_TEST_OUTPUT
-    // To look at test UART data 2400 Baud on pin 18
+    // To look at test UART data
     init_uart_1();
     xTaskCreatePinnedToCore(&uartWRITETask, "uartw", 4096, NULL, 20, &TaskHandle_tmp, 0);
     xTaskList[xtaskListCounter++] = TaskHandle_tmp;

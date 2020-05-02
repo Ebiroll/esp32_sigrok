@@ -8,6 +8,7 @@ A Rigol DS scope (rigol-ds) is emulated in order to allow sampling of analouge i
 Use pulseview to get the graphical input.
 
 # Quickstart
+
 The different options as described below are defined in the file app-config.h
 The default configuration is to use rigol-ds over ethernet port 5555
 Go to the configuration options and set ssid and password
@@ -20,12 +21,16 @@ Also set
   Compiler options ->  Optimization Level (Release (-Os)) 
 
   → Component config → ESP32-specific -> CPU Frequency (160 Mhz)
-  If you change frequency, you must adjust
-  void setTimescale(float scale) in 
+  If you change frequency, you have to set timings differently in
+  void setTimescale(float scale) 
+  Currently timing is calculated by counting cycles.
+  Analuge data is temporary disabled.
+
 
 ```
+The for the Rigol, only 1400 samples is available.
 
-Connect PIN 18-(2400 Baud UART output) to pin 12,13 or 14
+Pin 12 is default connected (9600 Baud UART output)
 Then start pulseview 
     pulseview -d rigol-ds:conn=tcp-raw/127.0.0.1/5555 -l 5
 
@@ -97,13 +102,13 @@ Pins defined  for logical input with the code in this repository over SUMP.
 Pins defined  for logical input with the code in this repository rigol-ds.
 
 ```
-            12,
+            12, // UART out
             13,
-            14,
+            14, // Remote device
             15,
             16,
             17,
-            18,  // UART out
+            18,  
             19,  // UART RX
             20,
             21,
@@ -121,7 +126,7 @@ Pins defined  for logical input with the code in this repository rigol-ds.
 Testdata in this example. To get testdata connect i.e pin 17 & 22 and pin 23 & 18
 ```
             17, remote device, square pulse
-            18, 2400 Baud UART with repeated text, "sump"
+            18, 9600 Baud UART with repeated text, "sump UUU"
 ```
 
 
@@ -174,7 +179,7 @@ Another good idea, might be to set these values.
 ```
 Otherwise they will interfer with the SUMP protocol.
 
-To get some test data, connect  a 30/15 ms pulse is generated with the remote device on pin 17
+To get some test data, connect  a 500/250 microS pulse is generated with the remote device on pin 14 (D2)
 ```
 app_main() {
     ...
