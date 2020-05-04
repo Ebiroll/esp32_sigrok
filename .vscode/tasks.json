@@ -1,18 +1,17 @@
 {
-    "version": "0.1.0",
-    "command": "bash",
+    "version": "2.0.0",
+    "command": "/usr/bin/bash",
     "args": ["-c"],
-    "isShellCommand": true,
-    "showOutput": "always",
-    "suppressTaskName": true,
+    "type": "shell",
+    "presentation" : { "reveal": "always" },
     "options": {
-        "cwd": "${workspaceRoot}"
+        "cwd": "${workspaceRoot}",
     },
     "tasks": [
         {
-            "taskName": "build app",
-            "args": ["./BUILD.sh all"],
-            "isBuildCommand": false,
+            "label": "build app",
+            "args": ["/usr/bin/make app"],
+            "group": "build",
             "problemMatcher": {
                 "owner": "cpp",
                 "fileLocation": "absolute",
@@ -27,43 +26,16 @@
             }
         },
         {
-            "taskName": "build app -j8",
-            "args": ["./BUILD.sh -j8 all"],
-            "isBuildCommand": true,
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": "absolute",
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
+            "label": "clean app",
+            "args": ["make app-clean"]
         },
         {
-            "taskName": "clean app",
-            "args": ["./BUILD.sh clean"]
+            "label": "monitor",
+            "args": ["make monitor"]
         },
         {
-            "taskName": "flash app",
+            "label": "flash app",
             "args": ["make app-flash"]
-        },
-        {
-            "taskName": "monitor",
-            "command": "gnome-terminal",
-            "args": ["-e","make monitor"],
-            "isShellCommand": false,
-            "showOutput": "never"
-        },
-        {
-            "taskName": "menuconfig",
-            "command": "gnome-terminal",
-            "args": ["-e","make menuconfig"],
-            "isShellCommand": false,
-            "showOutput": "never"
         }
     ]
 }

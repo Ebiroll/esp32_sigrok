@@ -22,7 +22,7 @@ void ota_server_task(void *param)
 	vTaskDelete(NULL);
 }
 
-
+#if 0
 static esp_err_t event_handler(void *ctx, system_event_t *event)
 {
 	switch (event->event_id)
@@ -64,7 +64,7 @@ void initialise_wifi(void)
 	ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
 	ESP_ERROR_CHECK(esp_wifi_start());
 }
-
+#endif
 
 static int get_socket_error_code(int socket)
 {
