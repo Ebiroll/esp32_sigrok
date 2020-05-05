@@ -14,7 +14,7 @@
 #include "freertos/task.h"
 #include "esp_heap_caps.h"
 #include "soc/spi_reg.h"
-#include "drivers/gpio.h"
+#include <driver/gpio.h>
 
 // ====================================================
 // ==== Global variables, default values ==============
