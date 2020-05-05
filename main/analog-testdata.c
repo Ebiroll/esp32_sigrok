@@ -9,7 +9,7 @@
 #include "driver/i2s.h"
 #include "driver/adc.h"
 #include "audio_example_file.h"
-
+#if 0
 static const char* TAG = "ad/da";
 
 #define PARTITION_NAME   "storage"
@@ -269,3 +269,4 @@ esp_err_t app_main()
 #endif
 
 
+#endif
