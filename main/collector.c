@@ -728,7 +728,7 @@ i2s_parallel_config_t cfg;
 
 // Check this also
 // https://github.com/espressif/esp-idf/issues/2251
-/*
+
 DMA_ATTR uint32_t dma_buff[2][100];
 DMA_ATTR lldesc_t dma_descriptor[2];
 
@@ -759,18 +759,18 @@ void setupSimple(void) {
     dma_descriptor[1].qe.stqe_next = &dma_descriptor[0];
 
     //data inputs
-    pinMode(18, INPUT);
-    gpio_matrix_in(18,    I2S0I_DATA_IN0_IDX, false);
-    pinMode(23, INPUT);
+     gpio_set_direction(18, GPIO_MODE_INPUT);
+     gpio_matrix_in(18,    I2S0I_DATA_IN0_IDX, false);
+    gpio_set_direction(23, GPIO_MODE_INPUT);
     gpio_matrix_in(23,    I2S0I_DATA_IN1_IDX, false);
-    pinMode(19, INPUT);
+    gpio_set_direction(19, GPIO_MODE_INPUT);
     gpio_matrix_in(19,    I2S0I_DATA_IN2_IDX, false);
     //for i2s in parallel camera input mode data is receiver only when V_SYNC = H_SYNC = H_ENABLE = 1. We don't use these inputs so simply set them High
     gpio_matrix_in(0x38, I2S0I_V_SYNC_IDX, false);
     gpio_matrix_in(0x38, I2S0I_H_SYNC_IDX, false);  //0x30 sends 0, 0x38 sends 1
     gpio_matrix_in(0x38, I2S0I_H_ENABLE_IDX, false);
 
-    pinMode(15, INPUT);
+    gpio_set_direction(15, GPIO_MODE_INPUT);
     gpio_matrix_in(15, I2S0I_WS_IN_IDX, false);  // XCLK
     
     // Enable and configure I2S peripheral
@@ -817,12 +817,12 @@ void setupSimple(void) {
     //start i2s + dma
     I2S0.conf.rx_start = 1;
 
-    delay(10000);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
 
     //stop i2s + dma
     I2S0.conf.rx_start = 0;
 }
-*/
+
 
 
 void setup(void) {
