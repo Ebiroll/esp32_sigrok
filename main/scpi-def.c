@@ -685,10 +685,10 @@ times_called++;
 
 if (times_called>1000) {
   SCPI_ResultMnemonic(context, "STOP");
-} else if (times_called>100) {
-  SCPI_ResultMnemonic(context, "RUN");
-} else if (times_called>10) {
- SCPI_ResultMnemonic(context, "TD");
+} else if (times_called>4) {
+  SCPI_ResultMnemonic(context, "TD");
+} else if (times_called>2) {
+ SCPI_ResultMnemonic(context, "RUN");
 } else {
  SCPI_ResultMnemonic(context, "WAIT");    
 }
@@ -719,7 +719,7 @@ static scpi_result_t wav_data(scpi_t * context) {
     sample_data[5]='0';
     sample_data[6]='0';
     sample_data[7]='1';
-    sample_data[8]='8';
+    sample_data[8]='4';
     sample_data[9]='0';
     sample_data[10]='0';
 
@@ -785,7 +785,7 @@ static scpi_result_t wav_stat(scpi_t * context) {
 
 static scpi_result_t query_wav_yinc(scpi_t * context) {
 
-    SCPI_ResultMnemonic(context, "0.000000e+00");
+    SCPI_ResultMnemonic(context, "0.000001e+00");
 
     return SCPI_RES_OK;
 }
@@ -856,6 +856,18 @@ static scpi_result_t set_wav_form(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+// Trigger mode is set to single
+static scpi_result_t set_single_acq(scpi_t * context) {
+
+times_called=0;
+
+#ifdef START_SAMPLE_TASK
+start_sampling();
+#endif
+
+   return SCPI_RES_OK;
+
+}
 
 // NORM, MAXimum,RAW
 static scpi_result_t set_wav_mode(scpi_t * context) {
@@ -884,11 +896,43 @@ static scpi_result_t set_time_scale(scpi_t * context) {
 
     return SCPI_RES_OK;
 }
+/*
+WAVeform:DATA?Command Format::WAVeform:DATA?
+[  <source>]
+Function:The command reads waveform data from the specified source. 
+<source> may be:  CHANnel1, CHANnel2,  CHANnel3,  CHANnel4 or   MATH. 
+Returned Format:     The query returns a certain amount of waveform data that specifed by :WAVeform:POINts.
+
+ NOTE:The command returns the data on the screen when the waveforms are played back. At 
+RIGOLCommand SystemsProgramming  Guide  for  DS1000B  Series 2-70this moment, only NORMal and MAXimum mode are available and the system is inSTOP state
+
+this moment, only NORMal and MAXimum mode are available and the system is inSTOP state.
+600 points are returned in common operation（+, －, ×）while 500 points are returned in FFT operation in all modes (NORMal, RAW, MAXimum). 
+The waveform data read in NORMal mode are fixed to be 600 points in STOP state.
+ In the condition when increasing the time base in STOP state to make all the waveforms display on the screen, 
+ you may find that some invalid data may be contained in data returned. 
+ So, you are recommended to read the data in RAW mode while in STOPstate.
+ Example::WAV:DATA?CHAN1Read the data from CH1. 3
+ 
+ 
+ :WAVeform:POINtsCommand Format::WAVeform:POINts <points> 
+ :WAVeform:POINts?Function:
+ This command sets the number of waveform points that are required to be returned. T  he default is 0. <points> has different value ranges in different modes.NORMal: 0  ~600RAW: 0~8192 or 0~16384 (in half channel state) NOTE: Half channel indicates selecting either one of the channels from CH1 and CH2, orfrom CH3 and CH4.Returned Format: The query returns an integer, for example: 10. NOTE:If  you set the number of waveform points to be 0, the query will return the maximum points in current mode (NORMal: return 600 points, RAW: return current memory depth); In MATH operation, 600 points are returned no matter what mode it is;In FFT, the maximum points will always be 500.
+Command Systems                                                                                                                      RIGOL Programming Guide for DS1000B Series2-71Example::WAV:POIN 20        Set the waveform points as 20.:WAV:POIN?        Return 20.For details about storage format of waveform points,
+
+*/
 
 
-
-// http://int.rigol.com/File/TechDoc/20151218/MSO1000Z&DS1000Z_ProgrammingGuide_EN.pdf
-
+// https://www.batronix.com/files/Rigol/Oszilloskope/_DS&MSO2000A/MSO2000A_DS2000A_ProgrammingGuide_EN.pdf
+// Page 2-364
+/*
+Note: When LA is set as the channel source of waveform data reading, the query always returns waveform data in
+ WORD format. The statuses of one group of digital signals are represented by two bytes. Of which, for the first byte, 
+its highest bit to the lowest bit respectively corresponds to the 
+ state of the digital channel from D7 to D0; 
+ for the second byte, its highest bit to the lowest bit respectively corresponds to the state 
+ of the digital channel from D15 to D8
+*/
 
 // :WAV:SOUR CHAN1
 // :WAV:SOUR LA
@@ -1063,6 +1107,7 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "WAV:FORM", .callback = set_wav_form,},
     { .pattern = ":WAV:MODE", .callback = set_wav_mode,},
 
+    { .pattern = ":SING", .callback = set_single_acq,},
 
     { .pattern = "TRIG:EDGE:SOUR", .callback = set_trig_edge_source,},
     // NORM
