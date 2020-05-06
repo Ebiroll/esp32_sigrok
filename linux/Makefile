@@ -1,7 +1,7 @@
 
 PROG = test
 
-SRCS = main.c ../main/scpi-def.c
+SRCS = main.c ../main/scpi-def.c sampling.c
 CFLAGS += -g -std=c99  -Wextra -Wmissing-prototypes -Wimplicit -I ../components/libscpi/inc/
 LDFLAGS += -lm ../components/libscpi/dist/libscpi.a -Wl,--as-needed
 
