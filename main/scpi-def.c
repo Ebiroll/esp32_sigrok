@@ -42,9 +42,14 @@
 
 #define START_SAMPLE_TASK 1
 
+int32_t memLen=1400;
+
+
 #ifdef START_SAMPLE_TASK
 #include "analog.h"
 #endif
+
+int wav_read_position=0;
 
 extern int trig_pin;
 
@@ -483,21 +488,76 @@ are 1 or 2.
     return SCPI_RES_OK;
 }
 
-static scpi_result_t chan1_scal(scpi_t * context) {
+
+float ch1_scale_value;
+float ch2_scale_value;
+
+static scpi_result_t set_chan1_scal(scpi_t * context) {
 
 /*
-he command is to set the vertical range of the amplified waveform.
+The command is to set the vertical range of the amplified waveform.
 <range> is  
 2mV~ 10V       Probe 1X   
 20mV~100V      Probe 10X   
 200mV~ 1000V   Probe 100X  
 2V~10000V      Probe 1000X 
 */
-    SCPI_ResultFloat(context, 0.02f);
+    if (SCPI_ParamFloat(context, &ch1_scale_value,TRUE)) {
+
+    }
+
+    SCPI_ResultFloat(context, ch1_scale_value);
 
 
     return SCPI_RES_OK;
 }
+
+
+
+static scpi_result_t set_chan2_scal(scpi_t * context) {
+
+/*
+The command is to set the vertical range of the amplified waveform.
+<range> is  
+2mV~ 10V       Probe 1X   
+20mV~100V      Probe 10X   
+200mV~ 1000V   Probe 100X  
+2V~10000V      Probe 1000X 
+*/
+    if (SCPI_ParamFloat(context, &ch2_scale_value,TRUE)) {
+
+    }
+
+    SCPI_ResultFloat(context, ch2_scale_value);
+
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t chan1_scal(scpi_t * context) {
+
+/*
+The command is to set the vertical range of the amplified waveform.
+<range> is  
+2mV~ 10V       Probe 1X   
+20mV~100V      Probe 10X   
+200mV~ 1000V   Probe 100X  
+2V~10000V      Probe 1000X 
+*/
+    SCPI_ResultFloat(context, ch1_scale_value);
+
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t chan2_scal(scpi_t * context) {
+
+    SCPI_ResultFloat(context, ch2_scale_value);
+
+    return SCPI_RES_OK;
+}
+
 
 static scpi_result_t chan1_offset(scpi_t * context) {
 
@@ -683,52 +743,40 @@ static scpi_result_t trig_status(scpi_t * context) {
 
 times_called++;
 
-if (times_called>1000) {
+if (times_called>10) {
   SCPI_ResultMnemonic(context, "STOP");
+  //printf("STOP");
 } else if (times_called>4) {
   SCPI_ResultMnemonic(context, "TD");
+  //printf("TD");
 } else if (times_called>2) {
  SCPI_ResultMnemonic(context, "RUN");
+  //printf("RUN");
 } else {
+  //printf("WAIT");
  SCPI_ResultMnemonic(context, "WAIT");    
 }
 
 return SCPI_RES_OK;
 }
 
-unsigned char sample_data[4096];
+unsigned char sample_data[14000+12];
 
 bool readDigital=false;
 
 //http://int.rigol.com/File/TechDoc/20151218/MSO1000Z&DS1000Z_ProgrammingGuide_EN.pdf
 static scpi_result_t wav_data(scpi_t * context) {
     const char * data;
-    size_t len=1400;
+    //size_t len=1400;
 
     //printf("wav_data ");
 #ifdef START_SAMPLE_TASK
     samples_finnished();
 #endif
-    //#90 0000 1400 1400
 
-    sample_data[0]='#';
-    sample_data[1]='9';
-    sample_data[2]='0';
-    sample_data[3]='0';
-    sample_data[4]='0';
-    sample_data[5]='0';
-    sample_data[6]='0';
-    sample_data[7]='1';
-    sample_data[8]='4';
-    sample_data[9]='0';
-    sample_data[10]='0';
+    // SCPI_ResultArbitraryBlock(,1400) will add this header
+    // #90 0000 1400 1400
 
-/*
-    sample_data[4]='1';
-    sample_data[5]='4';
-    sample_data[6]='0';
-    sample_data[7]='0';
-*/
 
 #ifdef START_SAMPLE_TASK
 //
@@ -736,21 +784,24 @@ static scpi_result_t wav_data(scpi_t * context) {
 if (readDigital) {
     printf("DIG\n");
     uint8_t* result=(uint8_t *)get_digital_values();
-    for (int i=0;i<1400;i++) {
+    for (int i=0;i<memLen;i++) {
         sample_data[i]=*result;
         result++;
     }
 } else {
     printf("ANAL\n");
+
     uint8_t* result=get_values();
-    for (int i=4;i<1400;i++) {
-        sample_data[i+11]=*result;
+    for (int i=0;i<memLen;i++) {
+        sample_data[i]=*result;
         result++;
     }
+
 }
 
 #else
 
+  if (readDigital) {
     int fake=0xaa;
     for (int i=0;i<1400;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
@@ -762,9 +813,20 @@ if (readDigital) {
        //    fake=25;
        // }
     }
-#endif
+  } else {
+    int fake=0x0;
+    for (int i=11;i<memLen;i+=1) {
+        //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
+       sample_data[i]=fake++;
+       if (fake>225) {
+           fake=0;
+        }
+    }
 
-   SCPI_ResultArbitraryBlock(context,sample_data,len);
+  }
+#endif
+    SCPI_ResultArbitraryBlock(context,sample_data,memLen);
+
    return SCPI_RES_OK;
 }
 
@@ -777,22 +839,25 @@ static scpi_result_t wav_yref(scpi_t * context) {
 
 
 static scpi_result_t wav_stat(scpi_t * context) {
+    char tmp_buff[20];
+    sprintf(tmp_buff,"IDLE,%d",memLen);
+    printf("---->%s",tmp_buff);
 
-    SCPI_ResultMnemonic(context, "IDLE,1400");
+    SCPI_ResultCharacters(context, tmp_buff,strlen(tmp_buff));
 
     return SCPI_RES_OK;
 }
 
 static scpi_result_t query_wav_yinc(scpi_t * context) {
 
-    SCPI_ResultMnemonic(context, "0.000001e+00");
+    SCPI_ResultMnemonic(context, "0.001e+00");
 
     return SCPI_RES_OK;
 }
 
 static scpi_result_t query_wav_yor(scpi_t * context) {
 
-    SCPI_ResultMnemonic(context, "-50");
+    SCPI_ResultMnemonic(context, "0");
 
     return SCPI_RES_OK;
 }
@@ -814,7 +879,6 @@ scpi_result_t SCPI_CoreEse(scpi_t * context) {
 }
 */
 
-int32_t memLen=1400;
 
 void set_mem_depth(int depth);
 
@@ -869,7 +933,7 @@ start_sampling();
 
 }
 
-// NORM, MAXimum,RAW
+// NORM, MAXimum,RAW (No  BYTE or WORD)??
 static scpi_result_t set_wav_mode(scpi_t * context) {
     char *result;
     size_t len;
@@ -879,6 +943,19 @@ static scpi_result_t set_wav_mode(scpi_t * context) {
 
     return SCPI_RES_OK;
 }
+
+
+static scpi_result_t wav_end(scpi_t * context) {
+    //char *result;
+    //size_t len;
+    //if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+    //    return SCPI_RES_OK;
+    //}
+
+    return SCPI_RES_OK;
+}
+
+
 
 extern void setTimescale(float scale);
 
@@ -903,6 +980,7 @@ Function:The command reads waveform data from the specified source.
 <source> may be:  CHANnel1, CHANnel2,  CHANnel3,  CHANnel4 or   MATH. 
 Returned Format:     The query returns a certain amount of waveform data that specifed by :WAVeform:POINts.
 
+
  NOTE:The command returns the data on the screen when the waveforms are played back. At 
 RIGOLCommand SystemsProgramming  Guide  for  DS1000B  Series 2-70this moment, only NORMal and MAXimum mode are available and the system is inSTOP state
 
@@ -912,13 +990,25 @@ this moment, only NORMal and MAXimum mode are available and the system is inSTOP
  In the condition when increasing the time base in STOP state to make all the waveforms display on the screen, 
  you may find that some invalid data may be contained in data returned. 
  So, you are recommended to read the data in RAW mode while in STOPstate.
- Example::WAV:DATA?CHAN1Read the data from CH1. 3
+ Example::WAV:DATA?CHAN1
+ Read the data from CH1. 
  
  
  :WAVeform:POINtsCommand Format::WAVeform:POINts <points> 
  :WAVeform:POINts?Function:
- This command sets the number of waveform points that are required to be returned. T  he default is 0. <points> has different value ranges in different modes.NORMal: 0  ~600RAW: 0~8192 or 0~16384 (in half channel state) NOTE: Half channel indicates selecting either one of the channels from CH1 and CH2, orfrom CH3 and CH4.Returned Format: The query returns an integer, for example: 10. NOTE:If  you set the number of waveform points to be 0, the query will return the maximum points in current mode (NORMal: return 600 points, RAW: return current memory depth); In MATH operation, 600 points are returned no matter what mode it is;In FFT, the maximum points will always be 500.
-Command Systems                                                                                                                      RIGOL Programming Guide for DS1000B Series2-71Example::WAV:POIN 20        Set the waveform points as 20.:WAV:POIN?        Return 20.For details about storage format of waveform points,
+ This command sets the number of waveform points that are required to be returned. 
+ The default is 0. <points> has different value ranges in different modes.
+ NORMal: 0  ~600
+ RAW: 0~8192 or 0~16384 (in half channel state) 
+ NOTE: Half channel indicates selecting either one of the channels from CH1 and CH2, 
+ orfrom CH3 and CH4.Returned Format: The query returns an integer, for example: 10. 
+ 
+ NOTE:If  you set the number of waveform points to be 0, the query will return the maximum points in current mode (NORMal: return 600 points, RAW: return current memory depth); 
+ In MATH operation, 600 points are returned no matter what mode it is;In FFT, the maximum points will always be 500.
+Command Systems                                                                                                                      RIGOL Programming Guide for DS1000B Series2-71
+Example::WAV:POIN 20        
+Set the waveform points as 20.:WAV:POIN?        
+Return 20.For details about storage format of waveform points,
 
 */
 
@@ -953,6 +1043,21 @@ static scpi_result_t set_wav_source(scpi_t * context) {
 }
 
 
+static scpi_result_t wav_read_reset(scpi_t * context) {
+
+    wav_read_position=0;
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t wav_read_begin(scpi_t * context) {
+
+    wav_read_position=0;
+    return SCPI_RES_OK;
+}
+
+
+ 
+
 static scpi_result_t set_trig_edge_source(scpi_t * context) {
    char *result;
     size_t len;
@@ -967,6 +1072,22 @@ static scpi_result_t set_trig_edge_source(scpi_t * context) {
             trig_pin=atoi(&result[1]);
             printf("other %d\n",trig_pin);
         }
+
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t set_wav_points(scpi_t * context) {
+    char *result;
+    size_t len;
+    int32_t num_points=0;
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        num_points=atoi(result);
+
+        //SCPI_ResultInt32(context, num_points);
 
         return SCPI_RES_OK;
     }
@@ -1048,8 +1169,12 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = ":TIM:SCAL?", .callback = time_scale,},
     { .pattern = ":CHAN1:PROB?", .callback = chan1_probe,},
     { .pattern = ":CHAN2:PROB?", .callback = chan1_probe,},
+    { .pattern = ":CHAN1:SCAL", .callback = set_chan1_scal,},
+    { .pattern = ":CHAN2:SCAL", .callback = set_chan2_scal,},
+
+
     { .pattern = ":CHAN1:SCAL?", .callback = chan1_scal,},
-    { .pattern = ":CHAN2:SCAL?", .callback = chan1_scal,},
+    { .pattern = ":CHAN2:SCAL?", .callback = chan2_scal,},
 
     { .pattern = "CHAN1:OFFS?", .callback = chan1_offset,},
     { .pattern = "CHAN2:OFFS?", .callback = chan1_offset,},
@@ -1106,12 +1231,20 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "WAV:STAT?", .callback = wav_stat,},
     { .pattern = "WAV:FORM", .callback = set_wav_form,},
     { .pattern = ":WAV:MODE", .callback = set_wav_mode,},
+    { .pattern = ":WAV:END", .callback = wav_end,},
+
+    
 
     { .pattern = ":SING", .callback = set_single_acq,},
 
     { .pattern = "TRIG:EDGE:SOUR", .callback = set_trig_edge_source,},
     // NORM
     { .pattern = "WAV:SOUR", .callback = set_wav_source,},
+    { .pattern = ":WAV:RES", .callback = wav_read_reset,},
+    { .pattern = ":WAV:BEG", .callback = wav_read_begin,},
+
+    // 
+    { .pattern = "WAV:POIN", .callback = set_wav_points,},
 
     { .pattern = ":WAV:YINC?", .callback = query_wav_yinc,},
     { .pattern = ":WAV:YOR?", .callback = query_wav_yor,},
@@ -1202,6 +1335,9 @@ const scpi_command_t scpi_commands[] = {
     {.pattern = "TEST:TEXT", .callback = TEST_Text,},
     {.pattern = "TEST:ARBitrary?", .callback = TEST_ArbQ,},
     {.pattern = "TEST:CHANnellist", .callback = TEST_Chanlst,},
+
+ 
+    
 
 
    

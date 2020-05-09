@@ -15,6 +15,9 @@
 //#include "esp_netif.h"
 #if 0
 
+void setup(void);
+
+
 static const char *TAG = "example";
 static const char *payload = "Message from ESP32 ";
 
@@ -42,10 +45,24 @@ camera_state_t *s_state;
 
 static i2s_parallel_state_t* i2s_state[2] = {NULL, NULL};
 
+bool ledPinVal=false;
+int isRcounter=0;
+intr_handle_t isrHandle;
 
 static void IRAM_ATTR i2s_trigger_isr(void) {
+
+  if ((isRcounter++%10)==0)
+  {
+    gpio_set_level(ledPin, ledPinVal);
+    ledPinVal=!ledPinVal;
+  }
   //I2S0.conf.rx_start = 1;
+
+  I2S0.int_clr.val = I2S0.int_raw.val;   
+
 }
+
+void setupSimple(void) ;
 
 void dma_serializer( dma_elem_t *dma_buffer ){
   for ( int i = 0 ; i < s_state->dma_buf_width/4 ; i++ ){
@@ -57,15 +74,6 @@ void dma_serializer( dma_elem_t *dma_buffer ){
 
 i2s_parallel_buffer_desc_t bufdesc;
 
-uint16_t* get_digital_values() {
-  return((uint16_t*)s_state->dma_buf[0]);
-  //return((uint16_t*)bufdesc.memory);
-}
-
-
-uint8_t* get_values() {
-  return((uint16_t*)s_state->dma_buf[0]);
-}
 
 // This task sends data
 #if 0
@@ -223,14 +231,24 @@ void stop_aquisition() {
     stop_aq=true;
 }
 
+DMA_ATTR uint32_t dma_buff[2][1400];
+DMA_ATTR lldesc_t dma_descriptor[2];
 
-void setupDelay(float divider) {
-  double rate = 100000000.0 / (divider + 1.0);
+
+void setupDelay(float timescale) {
+  double rate = 1000.0 / timescale ;
   enable_out_clock((int)rate);
-  printf("Capture Speed : %.2f Mhz\r\n", rate/1000000.0);
+  printf("Capture Speed : %.2f Khz\r\n", rate/1000.0);
 }
 
 void setTimescale(float scale){
+/*
+  for(uint8_t i = 0; i<sizeof(dma_buff[0])/2; i++) {
+      printf("%d",*(((uint16_t *)&dma_buff[0][0]) + i));
+      printf(' ');
+      //delay(10);
+    }
+*/
   setupDelay(scale);
   printf("setTimescale=%.3f\n",scale);
 
@@ -238,6 +256,9 @@ void setTimescale(float scale){
 
 void captureData() {
   uint32_t a, b, c, d;
+  printf("<====> DMA INT Number %d Status 0x%x \n", isRcounter, I2S0.int_raw.val);
+
+
   /*
   printf("FreeHeap         :%u\r\n", getFreeHeap());
   printf("FreeHeap 64 Byte :%u\r\n", heap_caps_get_largest_free_block(64) );
@@ -246,20 +267,20 @@ void captureData() {
   printf("Running on CORE #%d\r\n", xPortGetCoreID());
   printf("Reading %d Samples\r\n", readCount);
   */
-  gpio_set_level(ledPin, 1);
+  //gpio_set_level(ledPin, 1);
 
-  ESP_LOGD(TAG, "dma_sample_count: %d", s_state->dma_sample_count);
-  start_dma_capture();
+  //ESP_LOGD(TAG, "dma_sample_count: %d", s_state->dma_sample_count);
+  //start_dma_capture();
 
-  while (! s_state->dma_done ) 
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+  //while (! s_state->dma_done ) 
+  //  vTaskDelay(100 / portTICK_PERIOD_MS);
 		
 
   taskYIELD();
 
-  gpio_set_level(ledPin, 0);
+  //gpio_set_level(ledPin, 0);
 
-
+#if 0
   printf("ReadCount:  %d\r\n",readCount);
   printf("DMA Desc Current: %d\r\n",  s_state->dma_desc_cur);
 
@@ -316,15 +337,30 @@ void captureData() {
       break;
      }
 */   
+#endif
 
 //brexit:
-  ESP_LOGD(TAG, "End. TX: %d", tx_count);
-  gpio_set_level(ledPin, 0);
+  //ESP_LOGD(TAG, "End. TX: %d", tx_count);
+  //gpio_set_level(ledPin, 0);
 }
 
 
 void start_sampling(){
-   captureData();
+  printf( "DMA INT Number %d Status 0x%x \n", isRcounter, I2S0.int_raw.val);
+  setupSimple();
+
+  // Check difference
+  //setup();
+  //enable_out_clock(1000000);
+  printf("<== 0 ==> DMA INT Number %d Status 0x%x \n", isRcounter, I2S0.int_raw.val);
+
+  //I2S0.conf.rx_start = 1;
+
+  printf("<== 1 ==> DMA INT Number %d Status 0x%x \n", isRcounter, I2S0.int_raw.val);
+
+
+  //captureData();
+  //setupSimple();
 }
 
 bool samples_finnished() 
@@ -500,7 +536,7 @@ static void IRAM_ATTR iggr_isr(void* arg)
 
 static void IRAM_ATTR i2s_isr(void* arg) {
   if(trigger==0){
-    ESP_LOGD(TAG, "DMA INT Number %d Status 0x%x", s_state->dma_desc_cur, I2S0.int_raw.val );
+    printf("DMA INT Number %d Status 0x%x", s_state->dma_desc_cur, I2S0.int_raw.val );
   
      /*
      ESP_LOGD(TAG, "DMA INT take_data? %d", I2S0.int_raw.rx_take_data );
@@ -535,14 +571,14 @@ static void IRAM_ATTR i2s_isr(void* arg) {
     }
 
     
-    //s_state->dma_desc_cur=0;
-    esp_intr_disable(s_state->i2s_intr_handle);
-    i2s_conf_reset();
-    I2S0.conf.rx_start = 0;
-    s_state->dma_done = true;
+//s_state->dma_desc_cur=0;
+esp_intr_disable(s_state->i2s_intr_handle);
+i2s_conf_reset();
+I2S0.conf.rx_start = 0;
+s_state->dma_done = true;
  
-     I2S0.int_clr.val = I2S0.int_raw.val;   
-  }
+  I2S0.int_clr.val = I2S0.int_raw.val;   
+}
 
 
 void i2s_parallel_setup(const i2s_parallel_config_t *cfg) {
@@ -672,7 +708,6 @@ void i2s_parallel_setup(const i2s_parallel_config_t *cfg) {
   I2S0.in_link.start = 1;
   I2S0.int_clr.val = I2S0.int_raw.val;
   I2S0.int_ena.val = 0;
-  I2S0.int_ena.in_done = 1;
 
   //Setup I2S DMA Interrupt
   esp_err_t err = esp_intr_alloc( ETS_I2S0_INTR_SOURCE,
@@ -682,6 +717,9 @@ void i2s_parallel_setup(const i2s_parallel_config_t *cfg) {
   //Enable the Interrupt
   //ESP_ERROR_CHECK(esp_intr_enable(s_state->i2s_intr_handle));
   
+  I2S0.int_ena.in_done = 1;
+
+
 //  I2S0.conf.rx_start = 1;
 }
 
@@ -700,7 +738,8 @@ void enable_out_clock( int freq_in_hz ) {
     #if ESP_IDF_VERSION_MAJOR >= 4 && ESP_IDF_VERSION_MINOR >= 1
     timer_conf.clk_cfg = LEDC_AUTO_CLK;
     #endif
-
+    timer_conf.clk_cfg = LEDC_AUTO_CLK;
+    timer_conf.duty_resolution    = 2;
     //timer_conf.freq_hz = I2S_HZ;
     timer_conf.freq_hz = freq_in_hz;
     timer_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
@@ -716,7 +755,9 @@ void enable_out_clock( int freq_in_hz ) {
     ch_conf.intr_type = LEDC_INTR_DISABLE;
     ch_conf.duty = 1;
     ch_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
-    ch_conf.gpio_num =  23; //cfg.gpio_clk;  //s_config.pin_xclk; 
+    ch_conf.gpio_num =  16; //cfg.gpio_clk;  //s_config.pin_xclk; 
+    ch_conf.hpoint = 0;
+ 
     err = ledc_channel_config(&ch_conf);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "ledc_channel_config failed, rc=%x", err);
@@ -729,8 +770,6 @@ i2s_parallel_config_t cfg;
 // Check this also
 // https://github.com/espressif/esp-idf/issues/2251
 
-DMA_ATTR uint32_t dma_buff[2][100];
-DMA_ATTR lldesc_t dma_descriptor[2];
 
 void setupSimple(void) {
 
@@ -759,19 +798,26 @@ void setupSimple(void) {
     dma_descriptor[1].qe.stqe_next = &dma_descriptor[0];
 
     //data inputs
-     gpio_set_direction(18, GPIO_MODE_INPUT);
-     gpio_matrix_in(18,    I2S0I_DATA_IN0_IDX, false);
-    gpio_set_direction(23, GPIO_MODE_INPUT);
-    gpio_matrix_in(23,    I2S0I_DATA_IN1_IDX, false);
+    #ifndef UART_TEST_OUTPUT
+    //gpio_set_direction(17, GPIO_MODE_INPUT);
+    #endif
+    gpio_matrix_in(17,    I2S0I_DATA_IN0_IDX, false);
+    gpio_set_direction(18, GPIO_MODE_INPUT);
+    gpio_matrix_in(18,    I2S0I_DATA_IN1_IDX, false); // 23
     gpio_set_direction(19, GPIO_MODE_INPUT);
     gpio_matrix_in(19,    I2S0I_DATA_IN2_IDX, false);
+
+
+
     //for i2s in parallel camera input mode data is receiver only when V_SYNC = H_SYNC = H_ENABLE = 1. We don't use these inputs so simply set them High
     gpio_matrix_in(0x38, I2S0I_V_SYNC_IDX, false);
     gpio_matrix_in(0x38, I2S0I_H_SYNC_IDX, false);  //0x30 sends 0, 0x38 sends 1
     gpio_matrix_in(0x38, I2S0I_H_ENABLE_IDX, false);
 
-    gpio_set_direction(15, GPIO_MODE_INPUT);
-    gpio_matrix_in(15, I2S0I_WS_IN_IDX, false);  // XCLK
+    // Pixel clock is geneerated from pwm
+    // olas 
+    gpio_set_direction(22, GPIO_MODE_INPUT);
+    gpio_matrix_in(22, I2S0I_WS_IN_IDX, false);  // XCLK OLAS, 15
     
     // Enable and configure I2S peripheral
     periph_module_enable(PERIPH_I2S0_MODULE);
@@ -790,6 +836,8 @@ void setupSimple(void) {
     I2S0.clkm_conf.clkm_div_num = 2;
     I2S0.sample_rate_conf.rx_bck_div_num = 2; //i2s clk is divided before reaches BCK output 
        
+
+       
     // FIFO will sink data to DMA
     I2S0.fifo_conf.dscr_en = 1;
     I2S0.fifo_conf.tx_fifo_mod_force_en = 1;
@@ -807,6 +855,16 @@ void setupSimple(void) {
     I2S0.conf.rx_short_sync = 0;
     I2S0.timing.val = 0;
 
+/*
+  //Setup I2S DMA Interrupt
+  esp_err_t err = esp_intr_alloc( ETS_I2S0_INTR_SOURCE,
+                    ESP_INTR_FLAG_INTRDISABLED | ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM,
+                    &i2s_trigger_isr,  NULL, &isrHandle);
+  
+  //Enable the Interrupt
+  ESP_ERROR_CHECK(esp_intr_enable(isrHandle));
+*/
+
     //start i2s
     I2S0.rx_eof_num = 0xFFFFFFFF;
     I2S0.in_link.addr = (uint32_t)&dma_descriptor[0];
@@ -814,10 +872,16 @@ void setupSimple(void) {
     I2S0.int_clr.val = I2S0.int_raw.val;
     I2S0.int_ena.val = 0;
 
+    //I2S0.int_ena.val = 1;
+    //I2S0.int_ena.in_done = 1;
+
     //start i2s + dma
     I2S0.conf.rx_start = 1;
+    gpio_set_level(ledPin, 1);
 
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    gpio_set_level(ledPin, 0);
 
     //stop i2s + dma
     I2S0.conf.rx_start = 0;
@@ -847,10 +911,10 @@ void setup(void) {
   cfg.gpio_bus[9] = -1; //GPIO9 lead SW_CPU_RESET on WROOVER module
   cfg.gpio_bus[10] = -1; //GPI10 lead SW_CPU_RESET on WROOVER module
   cfg.gpio_bus[11] = 22; //GPIO11 used for CMD, bootloop
-  cfg.gpio_bus[12] = 12;
-  cfg.gpio_bus[13] = 13;
-  cfg.gpio_bus[14] = 14;
-  cfg.gpio_bus[15] = 15;
+  cfg.gpio_bus[12] = -1; //12;
+  cfg.gpio_bus[13] = -1; //13;
+  cfg.gpio_bus[14] = -1; // 14;
+  cfg.gpio_bus[15] = -1; //15;
 
 
   cfg.gpio_clk = 23; // Pin23 used for XCK input from LedC
@@ -858,9 +922,26 @@ void setup(void) {
   cfg.clkspeed_hz = 2 * 1000 * 1000; //resulting pixel clock = 1MHz
   cfg.buf = &bufdesc;
 
-  //enable_out_clock(I2S_HZ);
   //fill_dma_desc( bufdesc );
   i2s_parallel_setup(&cfg);
+
+
 }
+
+
+
+uint16_t* get_digital_values() {
+  //olas
+  //return((uint16_t*)s_state->dma_buf[0]);
+  //return((uint16_t*)bufdesc.memory);
+  return((uint16_t*)dma_buff);
+}
+
+
+uint8_t* get_values() {
+  //return((uint16_t*)s_state->dma_buf[0]);
+  return((uint8_t*)dma_buff);
+}
+
 
 #endif
