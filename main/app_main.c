@@ -511,6 +511,9 @@ void pwm(int gpioNum, uint32_t frequency) {
 }
 
 
+//192.168.1.127
+void setup();
+
 void app_main(void)
 {
     nvs_flash_init();
@@ -554,7 +557,7 @@ ota_event_group = xEventGroupCreate();
   
 #endif
 #endif
-
+//setup();
 
 // Start OTA Server
 #ifdef OTA_RUN_SERVER
@@ -565,14 +568,10 @@ ota_event_group = xEventGroupCreate();
     //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    //gpio_set_direction(GPIO_NUM_17, GPIO_MODE_OUTPUT);
-    #if 0
-    if (PIXEL_LEDC_PIN==GPIO_NUM_14) {
-        gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT);
-
-
-        pwm(PIXEL_LEDC_PIN,500000);
-    }
+    #if 1
+        // If you want to check the pixel clock
+        //gpio_set_direction(PIXEL_LEDC_PIN, GPIO_MODE_OUTPUT);
+        pwm(PIXEL_LEDC_PIN,40000);
     #endif
 
     //gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
@@ -601,6 +600,8 @@ ota_event_group = xEventGroupCreate();
     send_remote_pulses();
     rmt_write_items(config.channel, items, 1, 0);
 #endif
+
+ //gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
 
 #ifdef UART_TEST_OUTPUT
     // To look at test UART data

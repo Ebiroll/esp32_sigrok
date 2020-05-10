@@ -32,6 +32,9 @@
 #include "driver/timer.h"
 #include "soc/i2s_reg.h"
 #include "soc/i2s_struct.h"
+#include "app-config.h"
+
+#ifdef SUMP_OVER_UART
 
 #define STATES_LEN 8192
 
@@ -656,8 +659,11 @@ void sump(sump_context_t *context,sump_interface_t *io)
 
 
 
+
 void sump_uart() {
   sump_context_t context;
   context.uart_portno=0;
   sump(&context,&uart_interface);
 }
+
+#endif

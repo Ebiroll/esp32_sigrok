@@ -8,7 +8,13 @@ scpi-def.c
 scpi_server.c
 scpi_sock_server.c
 sump_server.c
-ota_server.c)
+ota_server.c
+#collector.c
+sampler.c
+)
+
+#analog.c
+#collector.c
 set(COMPONENT_ADD_INCLUDEDIRS ".")
 
 register_component()

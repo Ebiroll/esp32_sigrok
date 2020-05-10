@@ -1,3 +1,4 @@
+#if 1
 #include "analog.h"
 #include <driver/adc.h>
 #include "freertos/FreeRTOS.h"
@@ -11,7 +12,6 @@
 #define USE_SEMA 1
 #include "soc/efuse_reg.h"
 
-#define PARALLEL_0  12
 
 #ifdef CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
 #define CPU_FREQ CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
@@ -24,7 +24,6 @@ int trig_pin=-1;
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
 
 void setup_digital() {
-    // ACHTUNG! Should be 0, but we do this just for testing
   for (int i = 0; i < 16; i++) {
 
     if ((PARALLEL_0 +i == UART_OUTPUT_PIN)  || (PARALLEL_0 +i == UART_RX_PIN)) 
@@ -34,7 +33,7 @@ void setup_digital() {
         gpio_set_direction(PARALLEL_0 +i,GPIO_MODE_INPUT);
         gpio_set_pull_mode(PARALLEL_0 +i,GPIO_FLOATING);
 #else
-        printf("No input because of uart testsignal on pin %d D%d!\n",PARALLEL_0 +i,i);
+        printf("No input on pin %d because of uart testsignal D%d!\n",PARALLEL_0 +i,i);
 #endif
     } else if (PARALLEL_0 +i == PULSE_PIN) 
     {
@@ -42,7 +41,7 @@ void setup_digital() {
         gpio_set_direction(PARALLEL_0 +i,GPIO_MODE_INPUT);
         gpio_set_pull_mode(PARALLEL_0 +i,GPIO_FLOATING);
 #else
-        printf("No input because of rmt testsignal on pin %d D%d!\n",PARALLEL_0 +i,i);
+        printf("No input on pin %d because of rmt testsignal D%d!\n",PARALLEL_0 +i,i);
 #endif
 
      }
@@ -505,3 +504,4 @@ bool samples_finnished() {
 
     return ret;
 }
+#endif

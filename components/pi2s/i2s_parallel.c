@@ -21,7 +21,7 @@
  * and you think this stuff is worth it, you can buy me a beer in return. 
  * ----------------------------------------------------------------------------
  */
-
+#if 0
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -530,4 +530,5 @@ static void IRAM_ATTR i2s_isr(void* arg)
     }
 }
 
+#endif
 #endif

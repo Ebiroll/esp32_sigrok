@@ -51,7 +51,7 @@
 
 
 /* a global output buffer to collect output data until it will be 'flushed' */
-#define SCPI_OUPUT_BUFFER_SIZE      (4096*4)
+#define SCPI_OUPUT_BUFFER_SIZE      (14100)
 char SCPI_outputBuffer[SCPI_OUPUT_BUFFER_SIZE];
 unsigned int SCPI_outputBuffer_idx = 0;
 
@@ -193,9 +193,10 @@ static int waitServer(int fd) {
     max_fd = fd;
     FD_SET(fd, &fds);
 
-    timeout.tv_sec = 5;
+    timeout.tv_sec = 2;
     timeout.tv_usec = 0;
 
+    taskYIELD();
     rc = select(max_fd + 1, &fds, NULL, NULL, &timeout);
 
     return rc;

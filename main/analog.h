@@ -7,6 +7,7 @@
 #define SAMPLING_DONE_BIT   1
 
 #define NUM_SAMPLES 2048
+//14000
 
 uint8_t* get_values();
 

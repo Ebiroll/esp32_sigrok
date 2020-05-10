@@ -30,11 +30,37 @@ Also set
 ```
 The for the Rigol, only 1400 samples is available.
 
-Pin 12 is default connected (9600 Baud UART output)
+Pin 17 is default connected (9600 Baud UART output)
 Then start pulseview 
+Replace 127.0.0.1 with your  
     pulseview -d rigol-ds:conn=tcp-raw/127.0.0.1/5555 -l 5
 
 Do not use timebase less than 1 ms as timing will not be accurate.
+
+# Input pins
+```
+Pin 13-20 should be setup as input 
+Pin 17 will be setup with uart test pulse
+Pin 15 uses the remote device to setd a test pulse
+```
+Only datasource live works.
+
+# Analogue
+```
+PIN 36 is used for CH1 
+Sampling is not properly calibrated, and code needs some care.
+```
+
+
+# DMA sampling
+
+Note, the only way to make this usable, would to use DMA with a steady campling rate.
+I try to use this in sampler.c, but was not successful 
+If you would like to try, do change to #if 1 in sampler.c and #if 0 in analog.c
+The pixel clock is defined in app-config .h
+    PIXEL_LEDC_PIN 22
+Here I use Pin 27 for debugging (ledPin)
+This would have allowed data source from memory.
 
 
 # Sump
@@ -102,7 +128,6 @@ Pins defined  for logical input with the code in this repository over SUMP.
 Pins defined  for logical input with the code in this repository rigol-ds.
 
 ```
-            12, // UART out
             13,
             14, // Remote device
             15,
@@ -110,7 +135,7 @@ Pins defined  for logical input with the code in this repository rigol-ds.
             17,
             18,  
             19,  // UART RX
-            20,
+            20,   // Missing???
             21,
             22,
             23,
@@ -118,7 +143,8 @@ Pins defined  for logical input with the code in this repository rigol-ds.
             25,
             26,
             27,
-            28
+            28,
+            29
 ```
 
 

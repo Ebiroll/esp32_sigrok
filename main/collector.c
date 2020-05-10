@@ -12,6 +12,26 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "collector.h"
+#include "driver/ledc.h"
+
+#ifdef CONFIG_IDF_TARGET_ESP32
+#define LEDC_HS_TIMER          LEDC_TIMER_0
+#define LEDC_HS_MODE           LEDC_HIGH_SPEED_MODE
+#define LEDC_HS_CH0_GPIO       (18)
+#define LEDC_HS_CH0_CHANNEL    LEDC_CHANNEL_0
+#define LEDC_HS_CH1_GPIO       (19)
+#define LEDC_HS_CH1_CHANNEL    LEDC_CHANNEL_1
+#endif
+#define LEDC_LS_TIMER          LEDC_TIMER_1
+#define LEDC_LS_MODE           LEDC_LOW_SPEED_MODE
+#ifdef CONFIG_IDF_TARGET_ESP32S2
+#define LEDC_LS_CH0_GPIO       (18)
+#define LEDC_LS_CH0_CHANNEL    LEDC_CHANNEL_0
+#define LEDC_LS_CH1_GPIO       (19)
+#define LEDC_LS_CH1_CHANNEL    LEDC_CHANNEL_1
+#endif
+
+
 //#include "esp_netif.h"
 #if 0
 
@@ -51,15 +71,17 @@ intr_handle_t isrHandle;
 
 static void IRAM_ATTR i2s_trigger_isr(void) {
 
-  if ((isRcounter++%10)==0)
-  {
-    gpio_set_level(ledPin, ledPinVal);
-    ledPinVal=!ledPinVal;
-  }
+  if (ledPinVal)
+     gpio_set_level(ledPin, 1);
+     else
+     gpio_set_level(ledPin, 0);
+
+  ledPinVal=!ledPinVal;
+  isRcounter++;
+
   //I2S0.conf.rx_start = 1;
 
   I2S0.int_clr.val = I2S0.int_raw.val;   
-
 }
 
 void setupSimple(void) ;
@@ -230,8 +252,8 @@ int stop_aq=false;
 void stop_aquisition() {
     stop_aq=true;
 }
-
-DMA_ATTR uint32_t dma_buff[2][1400];
+// 1400/4
+DMA_ATTR uint32_t dma_buff[2][350];
 DMA_ATTR lldesc_t dma_descriptor[2];
 
 
@@ -346,6 +368,9 @@ void captureData() {
 
 
 void start_sampling(){
+
+  gpio_set_direction(ledPin, GPIO_MODE_OUTPUT);
+
   printf( "DMA INT Number %d Status 0x%x \n", isRcounter, I2S0.int_raw.val);
   setupSimple();
 
@@ -725,11 +750,44 @@ void i2s_parallel_setup(const i2s_parallel_config_t *cfg) {
 
 void enable_out_clock( int freq_in_hz ) {
     //ledcSetup(0, freq_in_hz, 1);
-    //ledcAttachPin(cfg.gpio_clk, 0);
+    //ledcAttachPin(16 0);
     //ledcWrite( 0, 1);
     //delay(10);
-    
-    
+
+    ledc_timer_config_t ledc_timer = {
+        .duty_resolution = LEDC_TIMER_1_BIT, // resolution of PWM duty
+        .freq_hz = freq_in_hz,                      // frequency of PWM signal
+        .speed_mode = LEDC_HS_MODE,           // timer mode
+        .timer_num = LEDC_HS_TIMER,            // timer index
+        .clk_cfg = LEDC_AUTO_CLK,              // Auto select the source clock
+    };
+    // Set configuration of timer0 for high speed channels
+    ledc_timer_config(&ledc_timer);
+
+
+#if defined CONFIG_IDF_TARGET_ESP32S2
+        {
+            .channel    = LEDC_LS_CH0_CHANNEL,
+            .duty       = 0,
+            .gpio_num   = LEDC_LS_CH0_GPIO,
+            .speed_mode = LEDC_LS_MODE,
+            .hpoint     = 0,
+            .timer_sel  = LEDC_LS_TIMER
+        },
+#endif
+    ledc_channel_config_t ledc_channel = 
+        {
+            .channel    = LEDC_HS_CH0_CHANNEL,
+            .duty       = 1,
+            .gpio_num   = 16,
+            .speed_mode = LEDC_HS_MODE,
+            .hpoint     = 0,
+            .timer_sel  = LEDC_HS_TIMER
+        };
+
+   ledc_channel_config(&ledc_channel);
+
+    #if 0
     esp_err_t err;
     periph_module_enable(PERIPH_LEDC_MODULE);
     ledc_timer_config_t timer_conf;
@@ -739,7 +797,7 @@ void enable_out_clock( int freq_in_hz ) {
     timer_conf.clk_cfg = LEDC_AUTO_CLK;
     #endif
     timer_conf.clk_cfg = LEDC_AUTO_CLK;
-    timer_conf.duty_resolution    = 2;
+    timer_conf.duty_resolution    = 1;
     //timer_conf.freq_hz = I2S_HZ;
     timer_conf.freq_hz = freq_in_hz;
     timer_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
@@ -762,7 +820,7 @@ void enable_out_clock( int freq_in_hz ) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "ledc_channel_config failed, rc=%x", err);
     }
-    
+    #endif
 }
 
 i2s_parallel_config_t cfg;
@@ -804,8 +862,8 @@ void setupSimple(void) {
     gpio_matrix_in(17,    I2S0I_DATA_IN0_IDX, false);
     gpio_set_direction(18, GPIO_MODE_INPUT);
     gpio_matrix_in(18,    I2S0I_DATA_IN1_IDX, false); // 23
-    gpio_set_direction(19, GPIO_MODE_INPUT);
-    gpio_matrix_in(19,    I2S0I_DATA_IN2_IDX, false);
+    //gpio_set_direction(19, GPIO_MODE_INPUT);
+    gpio_matrix_in(15,    I2S0I_DATA_IN2_IDX, false);
 
 
 
@@ -815,9 +873,8 @@ void setupSimple(void) {
     gpio_matrix_in(0x38, I2S0I_H_ENABLE_IDX, false);
 
     // Pixel clock is geneerated from pwm
-    // olas 
     gpio_set_direction(22, GPIO_MODE_INPUT);
-    gpio_matrix_in(22, I2S0I_WS_IN_IDX, false);  // XCLK OLAS, 15
+    gpio_matrix_in(22, I2S0I_WS_IN_IDX, false);  // PXCLK is generated
     
     // Enable and configure I2S peripheral
     periph_module_enable(PERIPH_I2S0_MODULE);
@@ -855,7 +912,7 @@ void setupSimple(void) {
     I2S0.conf.rx_short_sync = 0;
     I2S0.timing.val = 0;
 
-/*
+
   //Setup I2S DMA Interrupt
   esp_err_t err = esp_intr_alloc( ETS_I2S0_INTR_SOURCE,
                     ESP_INTR_FLAG_INTRDISABLED | ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM,
@@ -863,7 +920,7 @@ void setupSimple(void) {
   
   //Enable the Interrupt
   ESP_ERROR_CHECK(esp_intr_enable(isrHandle));
-*/
+
 
     //start i2s
     I2S0.rx_eof_num = 0xFFFFFFFF;
@@ -872,8 +929,8 @@ void setupSimple(void) {
     I2S0.int_clr.val = I2S0.int_raw.val;
     I2S0.int_ena.val = 0;
 
-    //I2S0.int_ena.val = 1;
-    //I2S0.int_ena.in_done = 1;
+    I2S0.int_ena.val = 1;
+    I2S0.int_ena.in_done = 1;
 
     //start i2s + dma
     I2S0.conf.rx_start = 1;
@@ -884,7 +941,7 @@ void setupSimple(void) {
     gpio_set_level(ledPin, 0);
 
     //stop i2s + dma
-    I2S0.conf.rx_start = 0;
+    //I2S0.conf.rx_start = 0;
 }
 
 
@@ -917,7 +974,7 @@ void setup(void) {
   cfg.gpio_bus[15] = -1; //15;
 
 
-  cfg.gpio_clk = 23; // Pin23 used for XCK input from LedC
+  cfg.gpio_clk = 16; // Pin23 used for XCK input from LedC
   cfg.bits = I2S_PARALLEL_BITS_16;
   cfg.clkspeed_hz = 2 * 1000 * 1000; //resulting pixel clock = 1MHz
   cfg.buf = &bufdesc;

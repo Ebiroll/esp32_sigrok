@@ -15,7 +15,7 @@
 
 #define CAPTURE_SIZE 14000
 
-#define ledPin 21 //Led on while running and Blinks while transfering data.
+#define ledPin 27 //Led on while running and Blinks while transfering data.
 
 
 typedef enum {

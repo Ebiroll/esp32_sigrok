@@ -51,7 +51,7 @@
 
 
 /* a global output buffer to collect output data until it will be 'flushed' */
-#define SCPI_OUPUT_BUFFER_SIZE      (4096*4)
+#define SCPI_OUPUT_BUFFER_SIZE      (14012)
 char SCPI_outputBuffer[SCPI_OUPUT_BUFFER_SIZE];
 unsigned int SCPI_outputBuffer_idx = 0;
 
@@ -86,8 +86,10 @@ scpi_result_t SCPI_Flush(scpi_t * context) {
         int fd = *(int *) (context->user_context);
         //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0;
         //SCPI_outputBuffer_idx++;
-        SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
-        SCPI_outputBuffer_idx++;
+
+        // Hmmm??? ACHTUNG
+        //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
+        //SCPI_outputBuffer_idx++;
 
         int tmp=SCPI_outputBuffer_idx;
         SCPI_outputBuffer_idx=0;
@@ -259,6 +261,9 @@ int main(int argc, char** argv) {
                     break;
                 } else {
                     SCPI_Input(&scpi_context, smbuffer, rc);
+                    /* To dump inpput */
+                    smbuffer[rc]=0;
+                    printf("%s",smbuffer);
                 }
             }
         }
