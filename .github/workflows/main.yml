@@ -15,7 +15,7 @@ jobs:
         test-platform:
           - esp32dev
     env:
-      name: esp32-sigrok-${{ matrix.test-platform }}-${GITHUB_SHA::8}.bin
+      name: esp32-sigrok.bin
       
     steps:
       - name: Select Python 3.7
