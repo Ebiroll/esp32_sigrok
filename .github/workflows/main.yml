@@ -14,7 +14,9 @@ jobs:
       matrix:
         test-platform:
           - esp32dev
-
+    env:
+      name: esp32-sigrok-${{ matrix.test-platform }}-${GITHUB_SHA::8}.bin
+      
     steps:
       - name: Select Python 3.7
         uses: actions/setup-python@v1
@@ -35,7 +37,7 @@ jobs:
         
       - uses: actions/upload-artifact@v2
         with:
-          name: "esp32-sigrok-${GITHUB_SHA}.bin"
+          name: ${{ env.name }}-name
           path: .pio/build/esp32dev/firmware.bin
 
 
