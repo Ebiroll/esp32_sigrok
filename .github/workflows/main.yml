@@ -35,7 +35,7 @@ jobs:
         
       - uses: actions/upload-artifact@v2
         with:
-          name: "esp32-sigrok-${{GITHUB_SHA}}.bin"
+          name: "esp32-sigrok-${GITHUB_SHA}.bin"
           path: .pio/build/esp32dev/firmware.bin
 
 
