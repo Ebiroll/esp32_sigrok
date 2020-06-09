@@ -1,3 +1,5 @@
+![ESP Code Build](https://github.com/saikek/esp32_sigrok/workflows/ESP%20Code%20Build/badge.svg)
+
 # Sigrok esp 32 
 
 A SUMP compatible logic analyser for the esp32, for use with i.e sigrok
