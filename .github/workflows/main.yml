@@ -1,0 +1,34 @@
+name: ESP Arduino code Build
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  test_builds:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        test-platform:
+          - esp32dev
+
+    steps:
+      - name: Select Python 3.7
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.7'
+          architecture: 'x64'
+
+      - name: Install PlatformIO
+        run: |
+          pip install -U https://github.com/platformio/platformio-core/archive/master.zip
+          platformio update
+          
+      - name: Check out the Release
+        uses: actions/checkout@v2
+
+      - name: Run PlatformIO for ${{ matrix.test-platform }}
+        run: platformio run -e ${{ matrix.test-platform }}
