@@ -37,7 +37,7 @@ jobs:
         
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ env.name }}-name
+          name: ${{ env.name }}
           path: .pio/build/esp32dev/firmware.bin
 
 
