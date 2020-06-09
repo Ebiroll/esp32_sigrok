@@ -1,4 +1,4 @@
-![ESP Code Build](https://github.com/saikek/esp32_sigrok/workflows/ESP%20Code%20Build/badge.svg)
+![ESP Code Build](https://github.com/Ebiroll/esp32_sigrok/workflows/ESP%20Code%20Build/badge.svg)
 
 # Sigrok esp 32 
 
