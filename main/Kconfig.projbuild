@@ -42,4 +42,11 @@ config EXAMPLE_DISPLAY_TYPE
             bool "M5Stack TFT display"
     endchoice
 
+config EXAMPLE_WEB_MOUNT_POINT
+    string "Website mount point in VFS"
+    default "/www"
+    help
+        Specify the mount point in VFS.
+
+
 endmenu
