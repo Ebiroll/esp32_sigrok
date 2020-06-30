@@ -56,9 +56,11 @@ Sampling is not properly calibrated, and code needs some care.
 
 # DMA sampling
 
-Note, the only way to make this usable, would to use DMA with a steady campling rate.
+Note, the only way to make this project usable, would to use DMA with a steady campling rate.
 I try to use this in sampler.c, but was not successful 
-If you would like to try, do change to #if 1 in sampler.c and #if 0 in analog.c
+If you would like to try, do change to
+    #if 1 in sampler.c and
+    #if 0 in analog.c
 The pixel clock is defined in app-config .h
     PIXEL_LEDC_PIN 22
 Here I use Pin 27 for debugging (ledPin)
@@ -67,37 +69,19 @@ This would have allowed data source from memory.
 
 # Sump
 You have to change configuration in app-config.h to get this to work
-#define SUMP_OVER_UART 1
+    #define SUMP_OVER_UART 1
 You will also have to go through the code.
 
 You might have to press scan a few times until the ESP32 appears.
 Set samplingrate to 10 KHZ 
 
 
-When using the WROVER board do,
+When using the WROVER board (USB0 is for JTAG) do,
 sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --scan
 Otherwise when scanning sump
 sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
 
 ![sump_uart](sump_uart.png)
-
-# added experimental tft drawing
-Just set correct display in config.
-The green line has a quarter of the sampling speed comapre to the white line
-```
-Make sure we got
-#define CONFIG_EXAMPLE_USE_TFT 1
-You can also define 
-#define USE_SEMA 1
-Then sampling will be done in a separate thread.
-This gives much wose results!
-It is also possible to change the constant in analog,c
-Lower value -> Higher sampling rate.
-// A complete sample loop takes about 8000 cycles, will not go faster
-#define COUNT_FOR_SAMPLE 17000
-```
-However, It does not work with all 3 variants enabled at the same time.
-
 
 # Analogue
 ```
