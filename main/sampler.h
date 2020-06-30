@@ -13,7 +13,7 @@
 #include "driver/ledc.h"
 
 
-#define CAPTURE_SIZE 1400
+#define CAPTURE_SIZE 14000
 
 #define ledPin 27 //Led on while running and Blinks while transfering data.
 

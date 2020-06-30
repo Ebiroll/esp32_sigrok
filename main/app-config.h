@@ -8,7 +8,7 @@
 //#define OTA_RUN_SERVER 1
 
 // First pin for parallell input 13-20
-#define PARALLEL_0  13
+#define PARALLEL_0  12
 
 #define UART_TEST_OUTPUT 1
 #define UART_OUTPUT_PIN 17
@@ -18,7 +18,7 @@
 //#define USE_CAMERA_IF 1
 #define PIXEL_LEDC_PIN 22
 
-#define PULSE_PIN 14
+#define PULSE_PIN 12
 #define RMT_PULSES 1
 
 

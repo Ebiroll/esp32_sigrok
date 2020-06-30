@@ -23,16 +23,28 @@ int trig_pin=-1;
 // Every 20 th value is the clock count
 uint16_t* cc_and_digital=NULL;
 
+uint8_t *analouge_values=NULL; //[NUM_SAMPLES];
+
+int *analouge_in_values=NULL; //[NUM_SAMPLES];
+
+uint16_t *digital_in_values=NULL; //[NUM_SAMPLES];
+
 
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
 
 void setup_digital() {
   if (cc_and_digital==NULL) {
       cc_and_digital=malloc(NUM_SAMPLES*20*sizeof(uint16_t));
+      analouge_values=malloc(NUM_SAMPLES*sizeof(uint8_t)); //[NUM_SAMPLES]; uint8_t
+      analouge_in_values=malloc(NUM_SAMPLES*sizeof(int)); //[NUM_SAMPLES];
+      digital_in_values=malloc(NUM_SAMPLES*sizeof(uint16_t)); //[NUM_SAMPLES];  // uint16_t *
   }
   if (cc_and_digital==NULL) {
       printf("Failed allocating buffers\n");
   }
+
+
+
 
   for (int i = 0; i < 16; i++) {
 
@@ -101,11 +113,6 @@ void parallel_write(uint8_t value) {
 #define ADC1_TEST_CHANNEL (ADC1_CHANNEL_0)
       //GPIO 36
 
-uint8_t analouge_values[NUM_SAMPLES];
-
-int analouge_in_values[NUM_SAMPLES];
-
-uint16_t digital_in_values[NUM_SAMPLES];
 
 
 
@@ -288,7 +295,7 @@ uint16_t* get_digital_values() {
 static int maxSamples=NUM_SAMPLES;
 
 void set_mem_depth(int depth) {
-    if (depth<NUM_SAMPLES) {
+    if (depth<=NUM_SAMPLES) {
         maxSamples=depth;
     }
 }
@@ -361,7 +368,8 @@ void sample_thread(void *param) {
         uint16_t next=parallel_read();
 
         while ((((1<<trig_pin) & tmp)==((1<<trig_pin) & next)) && (stop_aq==false)) {
-            uint32_t dummy = REG_READ(DUMMY);
+            __asm__("MEMW");
+            //uint32_t dummy = REG_READ(DUMMY);
             // Check if value changed
             next=parallel_read();
              if (breakout++>10000) {
@@ -389,48 +397,49 @@ void sample_thread(void *param) {
             //digital_in_values[sample_point+1]= test >> 16;
 //GPIO_STRAP_REG
             // The dummy reads are to create a delay and for workaround
-            uint32_t dummy = REG_READ(DUMMY);
+            //            uint32_t dummy = REG_READ(DUMMY);
             cc_and_digital[sample_point+1]=parallel_read();
-            dummy = REG_READ(DUMMY);
+            //dummy = REG_READ(DUMMY);
+            __asm__("MEMW");
             cc_and_digital[sample_point+2]=parallel_read();
-            dummy = REG_READ(DUMMY);
+           __asm__("MEMW");
             cc_and_digital[sample_point+3]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+4]=parallel_read();
-            dummy = REG_READ(DUMMY);                   
+           __asm__("MEMW");                   
             cc_and_digital[sample_point+5]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+6]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+7]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+8]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+9]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+10]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+11]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+12]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+13]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+14]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+15]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+16]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+17]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+18]=parallel_read();
-            dummy = REG_READ(DUMMY);          
+           __asm__("MEMW");          
             cc_and_digital[sample_point+19]=parallel_read();
 
             // TDOD, RAW analouge values, this confuses timing
-            //voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
-            //analouge_in_values[sample_point/20]=voltage;
+            voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+            analouge_in_values[sample_point/20]=voltage;
             //taskYIELD();
 
             sample_point+=20;

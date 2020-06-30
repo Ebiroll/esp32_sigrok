@@ -136,7 +136,7 @@ static void uartWRITETask(void *inpar) {
 
   while(true) {
     (void) uart_write_bytes(uart_num, (const char *)echoLine, 8);
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
   }
 }
 #endif
