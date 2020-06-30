@@ -1,5 +1,4 @@
 /// CHANGE CONFIGURATION HERE!!
-#undef CONFIG_EXAMPLE_USE_TFT
 #undef SUMP_OVER_UART
 #undef SUMP_OVER_UART 
 #define  SCPI_ON_NETWORK 1
@@ -19,9 +18,8 @@
 //#define USE_CAMERA_IF 1
 #define PIXEL_LEDC_PIN 22
 
-#define PULSE_PIN 15
+#define PULSE_PIN 14
 #define RMT_PULSES 1
-
 
 
 #undef RUN_IN_QEMU

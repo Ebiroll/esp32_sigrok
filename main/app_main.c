@@ -28,6 +28,7 @@ SOFTWARE.
 #include "esp_system.h"
 #include "esp_event.h"
 //#include "esp_event_loop.h"
+#include "freertos/event_groups.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
@@ -45,21 +46,12 @@ SOFTWARE.
 #include "Header.h"
 #include "ota_server.h"
 #include "driver/ledc.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "nvs_flash.h"
+#include "lwip/err.h"
+#include "lwip/sys.h"
 
-#ifdef RUN_IN_QEMU
-#include "emul_ip.h"
-#endif
-
-#ifdef CONFIG_EXAMPLE_USE_TFT
-#include "tftspi.h"
-#include "tft.h"
-
-// ==========================================================
-// Define which spi bus to use TFT_VSPI_HOST or TFT_HSPI_HOST
-#define SPI_BUS TFT_HSPI_HOST
-// ==========================================================
-
-#endif
 
 
 
@@ -131,7 +123,7 @@ static void init_uart_1()
 }
 
 static void uartWRITETask(void *inpar) {
-  printf("sump UUU");  
+  //printf("sump UUU");  
   uart_port_t uart_num = UART_NUM_1;    
   echoLine[0]='s';
   echoLine[1]='u';
@@ -144,7 +136,7 @@ static void uartWRITETask(void *inpar) {
 
   while(true) {
     (void) uart_write_bytes(uart_num, (const char *)echoLine, 8);
-    vTaskDelay(18 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
 #endif
@@ -197,27 +189,22 @@ static void uartECHOTask(void *inpar) {
 }
 #endif
 
-esp_err_t event_handler(void *ctx, system_event_t *event)
+static void wifi_event_handler(void* arg, esp_event_base_t event_base,
+                                    int32_t event_id, void* event_data)
 {
-	switch (event->event_id)
-	{
-	case SYSTEM_EVENT_STA_START:
-		esp_wifi_connect();
-        printf("Connectiing To SSID:%s : Pass:%s\r\n", CONFIG_WIFI_SSID, CONFIG_WIFI_PASSWORD);
-		break;
-	case SYSTEM_EVENT_STA_GOT_IP:
-        printf("got ip:%s\r\n",	ip4addr_ntoa(&event->event_info.got_ip.ip_info.ip));
-		xEventGroupSetBits(ota_event_group, OTA_CONNECTED_BIT);
-		break;
-	case SYSTEM_EVENT_STA_DISCONNECTED:
-        printf("SYSTEM_EVENT_STA_DISCONNECTED\r\n");
-		esp_wifi_connect();
-		xEventGroupClearBits(ota_event_group, OTA_CONNECTED_BIT);
-		break;
-	default:
-		break;
-	}
-	return ESP_OK;
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        xEventGroupSetBits(ota_event_group, OTA_CONNECTED_BIT);
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STADISCONNECTED) {
+        xEventGroupClearBits(ota_event_group, OTA_CONNECTED_BIT);
+        wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
+        ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d",
+                 MAC2STR(event->mac), event->aid);
+         esp_wifi_connect();
+    }
 }
 
 // Similar to uint32_t system_get_time(void)
@@ -295,199 +282,8 @@ void example_i2s_adc_dac(void*arg);
 
 
 
-#ifdef CONFIG_EXAMPLE_USE_TFT
 
-void drawSampleData(int* in_data,int num_samples);
-
-//=============
-void tft_init()
-{
-    //test_sd_card();
-    // ========  PREPARE DISPLAY INITIALIZATION  =========
-
-    esp_err_t ret;
-
-    // === SET GLOBAL VARIABLES ==========================
-
-    // ===================================================
-    // ==== Set display type                         =====
-    //tft_disp_type = DEFAULT_DISP_TYPE;
-	tft_disp_type = DISP_TYPE_ILI9341;
-	//tft_disp_type = DISP_TYPE_ILI9488;
-	//tft_disp_type = DISP_TYPE_ST7735B;
-    //tft_disp_type =  DISP_TYPE_ST7735:
-    // DISP_TYPE_ST7735R,
-
-    // ===================================================
-
-	// ===================================================
-	// === Set display resolution if NOT using default ===
-	// === DEFAULT_TFT_DISPLAY_WIDTH &                 ===
-    // === DEFAULT_TFT_DISPLAY_HEIGHT                  ===
-	_width = DEFAULT_TFT_DISPLAY_WIDTH;  // smaller dimension
-	_height = DEFAULT_TFT_DISPLAY_HEIGHT; // larger dimension
-	//_width = 128;  // smaller dimension
-	//_height = 160; // larger dimension
-	// ===================================================
-
-	// ===================================================
-	// ==== Set maximum spi clock for display read    ====
-	//      operations, function 'find_rd_speed()'    ====
-	//      can be used after display initialization  ====
-	max_rdclock = 8000000;
-	// ===================================================
-
-    // ====================================================================
-    // === Pins MUST be initialized before SPI interface initialization ===
-    // ====================================================================
-    TFT_PinsInit();
-
-    // ====  CONFIGURE SPI DEVICES(s)  ====================================================================================
-
-    spi_lobo_device_handle_t spi;
-	
-    spi_lobo_bus_config_t buscfg={
-        .miso_io_num=PIN_NUM_MISO,				// set SPI MISO pin
-        .mosi_io_num=PIN_NUM_MOSI,				// set SPI MOSI pin
-        .sclk_io_num=PIN_NUM_CLK,				// set SPI CLK pin
-        .quadwp_io_num=-1,
-        .quadhd_io_num=-1,
-		.max_transfer_sz = 6*1024,
-    };
-    spi_lobo_device_interface_config_t devcfg={
-        .clock_speed_hz=8000000,                // Initial clock out at 8 MHz
-        .mode=0,                                // SPI mode 0
-        .spics_io_num=-1,                       // we will use external CS pin
-		.spics_ext_io_num=PIN_NUM_CS,           // external CS pin
-		.flags=LB_SPI_DEVICE_HALFDUPLEX,        // ALWAYS SET  to HALF DUPLEX MODE!! for display spi
-    };
-
-
-    // ====================================================================================================================
-
-
-    vTaskDelay(500 / portTICK_RATE_MS);
-	printf("==============================\r\n");
-    printf("Pins used: miso=%d, mosi=%d, sck=%d, cs=%d\r\n", PIN_NUM_MISO, PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS);
-	printf("==============================\r\n\r\n");
-
-	// ==================================================================
-	// ==== Initialize the SPI bus and attach the LCD to the SPI bus ====
-
-	ret=spi_lobo_bus_add_device(SPI_BUS, &buscfg, &devcfg, &spi);
-    assert(ret==ESP_OK);
-	printf("SPI: display device added to spi bus (%d)\r\n", SPI_BUS);
-	disp_spi = spi;
-
-	// ==== Test select/deselect ====
-	ret = spi_lobo_device_select(spi, 1);
-    assert(ret==ESP_OK);
-	ret = spi_lobo_device_deselect(spi);
-    assert(ret==ESP_OK);
-
-	printf("SPI: attached display device, speed=%u\r\n", spi_lobo_get_speed(spi));
-	printf("SPI: bus uses native pins: %s\r\n", spi_lobo_uses_native_pins(spi) ? "true" : "false");
-
-
-	// ================================
-	// ==== Initialize the Display ====
-
-	printf("SPI: display init...\r\n");
-	TFT_display_init();
-    printf("OK\r\n");
-	
-	// ---- Detect maximum read speed ----
-	max_rdclock = find_rd_speed();
-	printf("SPI: Max rd speed = %u\r\n", max_rdclock);
-
-    // ==== Set SPI clock used for display operations ====
-	spi_lobo_set_speed(spi, DEFAULT_SPI_CLOCK);
-	printf("SPI: Changed speed to %u\r\n", spi_lobo_get_speed(spi));
-
-    printf("\r\n---------------------\r\n");
-	printf(" TFT started\r\n");
-
-	printf("---------------------\r\n");
-
-    TFT_setGammaCurve(DEFAULT_GAMMA_CURVE);
-	TFT_setRotation(LANDSCAPE);
-	TFT_setFont(DEFAULT_FONT, NULL);
-	TFT_resetclipwin();
-
-    char Buff[120];
-    sprintf(Buff,"To start, press boot");
-
-    TFT_print(Buff,20,40);
-
-/*
-==============================
-Pins used: miso=25, mosi=23, sck=19, cs=22
-==============================
-
-SPI: display device added to spi bus (2)
-SPI: attached display device, speed=8000000
-SPI: bus uses native pins: false
-SPI: display init...
-
-*/
-
-}
-
-static void tft_trig_task(void *inpar) {
-
-
-    int level=gpio_get_level(0);
-    // Check boot button and trigger sampling
-    while(1) {
-      // You need to connect the debugger for this to work
-      //while(gpio_get_level(0)==level) {
-      //      vTaskDelay(100 / portTICK_RATE_MS);
-      //  }
-        TFT_fillWindow(TFT_BLACK);
-
-        printf("Start sampling\n");
-        vTaskDelay(50 / portTICK_RATE_MS);
-
-       while(true) {  // gpio_get_level(0)==level
-         start_sampling();
-         if (samples_finnished()) {
-             int *samp=get_sample_values();
-             drawSampleData(samp,NUM_SAMPLES);
-             //printf("s=%d,%d\n",*samp,*(samp+1));
-
-             /*
-             int num_in_loop=0;
-             // Try trigger on rising edge
-             while(num_in_loop < NUM_SAMPLES-320) {
-                 if (*samp < *(samp+1) ) {
-                     if (*(samp+1) > 20) {
-                        drawSampleData(samp,NUM_SAMPLES-num_in_loop);
-                        printf("s=%d\n",num_in_loop);
-                        break;
-                     }
-                     samp++;
-                     num_in_loop++;
-                 }
-             }
-             if (num_in_loop > NUM_SAMPLES-340) {
-                 int *samp2=get_sample_values();
-                 drawSampleData(samp2,NUM_SAMPLES);
-             }
-             */
-         } else {
-             printf("NOT FINISHED!!!!\n");
-             int *samp=get_sample_values();
-             drawSampleData(samp,NUM_SAMPLES);
-         }
-      }
-      level=gpio_get_level(0);
-
-    }
-}
-
-
-#endif
-
+#if 0
 void pwm(int gpioNum, uint32_t frequency) {
     
 	ledc_timer_config_t timer_conf;
@@ -510,6 +306,7 @@ void pwm(int gpioNum, uint32_t frequency) {
 
 }
 
+#endif
 
 //192.168.1.127
 void setup();
@@ -527,36 +324,70 @@ void app_main(void)
     // Test analog thread
     xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, &xHandlingTask, 20, NULL, 0);
 #endif
+
 ota_event_group = xEventGroupCreate();
 
-#if RUN_IN_QEMU
-   if (is_running_qemu()) {
-          tcpip_adapter_init();
-          ESP_ERROR_CHECK(esp_event_loop_init(event_handler, NULL));
-	      xTaskCreatePinnedToCore(task_lwip_init, "loop", 3*4096, NULL, 14, NULL, 0);
-    }
-#else
 #if defined(SUMP_ON_NETWORK) ||  defined (SCPI_ON_NETWORK) || defined(DEBUG_SUMP)
-    tcpip_adapter_init();
-    ESP_ERROR_CHECK( esp_event_loop_init(event_handler, NULL) );
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_netif_create_default_wifi_sta();
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK( esp_wifi_init(&cfg) );
-    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
-    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
-    wifi_config_t sta_config = {
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    esp_event_handler_instance_t instance_any_id;
+    esp_event_handler_instance_t instance_got_ip;
+
+    //esp_event_handler_register_instance
+
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+                                                        ESP_EVENT_ANY_ID,
+                                                        &wifi_event_handler,
+                                                        NULL,
+                                                         &instance_any_id));
+
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
+                                                        IP_EVENT_STA_GOT_IP,
+                                                        &wifi_event_handler,
+                                                        NULL,
+                                                        &instance_got_ip));
+
+    wifi_config_t wifi_config = {
         .sta = {
             .ssid = EXAMPLE_WIFI_SSID,
             .password = EXAMPLE_WIFI_PASS,
-            .bssid_set = false
-        }
+            .pmf_cfg = {
+                .capable = true,
+                .required = false
+            },
+        },
     };
-    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
-    ESP_ERROR_CHECK( esp_wifi_start() );
-    ESP_ERROR_CHECK( esp_wifi_connect() );
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
+    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config) );
+    ESP_ERROR_CHECK(esp_wifi_start() );
 
-  
+    ESP_LOGI(TAG, "wifi_init_sta finished.");
+/*
+      EventBits_t bits = xEventGroupWaitBits(ota_event_group,
+            OTA_CONNECTED_BIT,
+            pdFALSE,
+            pdFALSE,
+            portMAX_DELAY);
+    // xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
+    // happened. 
+    if (bits & OTA_CONNECTED_BIT) {
+        ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
+                 EXAMPLE_WIFI_SSID, EXAMPLE_WIFI_PASS);
+    } else {
+        ESP_LOGE(TAG, "UNEXPECTED EVENT");
+    }
+*/
+
+
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+
 #endif
-#endif
+
 //setup();
 
 // Start OTA Server
@@ -568,7 +399,7 @@ ota_event_group = xEventGroupCreate();
     //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    #if 1
+    #if 0
         // If you want to check the pixel clock
         //gpio_set_direction(PIXEL_LEDC_PIN, GPIO_MODE_OUTPUT);
         pwm(PIXEL_LEDC_PIN,40000);
@@ -584,16 +415,6 @@ ota_event_group = xEventGroupCreate();
     //gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);	    
     //gpio_set_level(GPIO_NUM_4, 0);
 
-#if 0
-    // RGB leds on wrover kit
-    gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
-    gpio_set_direction(GPIO_NUM_2, GPIO_MODE_OUTPUT);
-
-    gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
-    gpio_set_level(GPIO_NUM_0, 0);
-    gpio_set_level(GPIO_NUM_2, 0);
-    gpio_set_level(GPIO_NUM_4, 0);
-#endif
 
 #ifdef RMT_PULSES
     gpio_set_direction(PULSE_PIN, GPIO_MODE_OUTPUT);
@@ -614,11 +435,7 @@ ota_event_group = xEventGroupCreate();
     // Analouge out, however this interferes with analogue in
     //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
 
-#ifdef CONFIG_EXAMPLE_USE_TFT
-    tft_init();
-    xTaskCreatePinnedToCore(&tft_trig_task, "trig", 4096, NULL, 20, &xHandlingTask, 1);
-    xTaskList[xtaskListCounter++] = xHandlingTask;
-#endif
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
 
 #ifdef SCPI_ON_NETWORK
     scpi_server_init(&xHandlingTask);
@@ -632,6 +449,15 @@ ota_event_group = xEventGroupCreate();
 #if defined (SUMP_OVER_UART)
     sump_uart();
 #endif
+
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
 
     vTaskDelete(NULL);
 

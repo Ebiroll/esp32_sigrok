@@ -9,9 +9,8 @@
 //#include "esp_adc_cal.h"
 #include "app-config.h"
 #include "sdkconfig.h"
-#define USE_SEMA 1
+#define USE_SEMA 0
 #include "soc/efuse_reg.h"
-
 
 #ifdef CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
 #define CPU_FREQ CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
@@ -21,9 +20,20 @@
 
 int trig_pin=-1;
 
+// Every 20 th value is the clock count
+uint16_t* cc_and_digital=NULL;
+
+
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
 
 void setup_digital() {
+  if (cc_and_digital==NULL) {
+      cc_and_digital=malloc(NUM_SAMPLES*20*sizeof(uint16_t));
+  }
+  if (cc_and_digital==NULL) {
+      printf("Failed allocating buffers\n");
+  }
+
   for (int i = 0; i < 16; i++) {
 
     if ((PARALLEL_0 +i == UART_OUTPUT_PIN)  || (PARALLEL_0 +i == UART_RX_PIN)) 
@@ -52,8 +62,11 @@ void setup_digital() {
      }
 #endif     
      else {
-        gpio_set_direction( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_MODE_INPUT);
-        gpio_set_pull_mode( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_FLOATING);
+         // Unused on esp32s2 , pin 26 is used for SPIRAM
+         if (((PARALLEL_0 +i)!=20) && ((PARALLEL_0 +i)!=24) && ((PARALLEL_0 +i)!=26)) {
+            gpio_set_direction( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_MODE_INPUT);
+            gpio_set_pull_mode( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_FLOATING);
+         }
     }
   }
 }
@@ -94,8 +107,6 @@ int analouge_in_values[NUM_SAMPLES];
 
 uint16_t digital_in_values[NUM_SAMPLES];
 
-// Every 20 th value is the clock count
-uint16_t cc_and_digital[NUM_SAMPLES*20];
 
 
 int sample_point;
@@ -123,9 +134,10 @@ void setTimescale(float scale){
 
 
 // This function can be used to find the true value for V_REF
+#if 0
 void route_adc_ref()
 {
-    esp_err_t status = adc2_vref_to_gpio(GPIO_NUM_25);
+    esp_err_t status = adc2_vref_to_gpio(GPIO_NUM_45);
     if (status == ESP_OK){
         printf("v_ref routed to GPIO\n");
     }else{
@@ -133,6 +145,7 @@ void route_adc_ref()
     }
     fflush(stdout);
 }
+#endif
 
 //-----------------------------------------------------------------------------
 // Read CCOUNT register.
@@ -333,7 +346,8 @@ void sample_thread(void *param) {
     }
 #endif
 
-#define DUMMY EFUSE_BLK0_RDATA3_REG
+//#define DUMMY EFUSE_PGM_DATA3_REG
+#define DUMMY 0x3ff5A000+0x000C
 
     sample_point=0;
 
@@ -481,7 +495,7 @@ void start_sampling() {
     }
 
 #if USE_SEMA
-    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, 1);
+    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, 0);
 #else
     sample_thread(NULL);
 #endif

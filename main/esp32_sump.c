@@ -75,7 +75,7 @@ uint16_t getSample() {
 	// TODO, there should be a more direct way to read this
 
     uint16_t ret=0;
-	ret=gpio_get_level(12) | 
+	ret=gpio_get_level(17) | 
 	        (gpio_get_level(13) << 1) |  
 			(gpio_get_level(14) << 2) |
 			(gpio_get_level(15) << 3);

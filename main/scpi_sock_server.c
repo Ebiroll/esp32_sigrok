@@ -214,6 +214,8 @@ static void scpi_server_thread(void *arg) {
     /* user_context will be pointer to socket */
     scpi_context.user_context = NULL;
 
+    printf("Init\n");
+
     SCPI_Init(&scpi_context,
             scpi_commands,
             &scpi_interface,
@@ -222,12 +224,20 @@ static void scpi_server_thread(void *arg) {
             scpi_input_buffer, SCPI_INPUT_BUFFER_LENGTH,
             scpi_error_queue_data, SCPI_ERROR_QUEUE_SIZE);
 
+    printf("Create server\n");
+
     listenfd = createServer(5555);
+
+    printf("Done\n");
+
 
     while (1) {
         int clifd;
         struct sockaddr_in cliaddr;
         socklen_t clilen;
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+
+        printf("Connection established %s\r\n", inet_ntoa(cliaddr.sin_addr));
 
         clilen = sizeof (cliaddr);
         clifd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen);
@@ -272,7 +282,7 @@ static void scpi_server_thread(void *arg) {
     return (EXIT_SUCCESS);
 }
 
-#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 8)
+#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 2)
 
 
 extern TaskHandle_t xTaskList[20];
