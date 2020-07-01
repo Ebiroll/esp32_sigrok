@@ -54,6 +54,17 @@ int wav_read_position=0;
 extern int trig_pin;
 
 
+
+
+
+static scpi_result_t measure_count_source(scpi_t * context) {
+    fprintf(stderr, "meas:count:source\r\n"); /* debug command name */
+
+    SCPI_ResultMnemonic(context, "OFF");
+    return SCPI_RES_OK;
+
+}
+
 static scpi_result_t DMM_MeasureVoltageDcQ(scpi_t * context) {
     scpi_number_t param1, param2;
     char bf[15];
@@ -380,6 +391,34 @@ static scpi_result_t chan_disp_on(scpi_t * context) {
 
     return SCPI_RES_OK;
 }
+
+static scpi_result_t query_disp_grid(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "FULL");
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_disp_grad_time(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "MIN");
+
+    return SCPI_RES_OK;
+}
+
+
+
+// VECT or DOT
+static scpi_result_t query_disp_type(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "VECT");
+
+    return SCPI_RES_OK;
+}
+
+
+
+
 
 static scpi_result_t chan_disp_off(scpi_t * context) {
 
@@ -723,10 +762,56 @@ static scpi_result_t stop_acquisition(scpi_t * context) {
 The  command  controls  the  oscilloscope  to  stop  acquiring  data.  To  restart  the 
 acquisition, use the :RUN command
 */
-printf("stop\n");
+printf("stop-\n");
 stop_aquisition();
 return SCPI_RES_OK;
 }
+
+static scpi_result_t query_trig_coup(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "DC");
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t query_trig_sweep(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "AUTO");
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_trig_mode(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "EDGE");
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_trig_slope(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "POS");
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_trig_edg_slope(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "POS");
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_trig_edg_source(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "CHAN1");
+    return SCPI_RES_OK;
+}
+
+// Set source
+static scpi_result_t trig_edg_source(scpi_t * context) {
+
+    char *result;
+    size_t len;
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        printf("Trig edge %s\n",result);
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
+
+
 
 
 static scpi_result_t trig_status(scpi_t * context) {
@@ -803,11 +888,13 @@ if (readDigital) {
 
   if (readDigital) {
     int fake=0xaa;
-    for (int i=0;i<1400;i+=1) {
+    for (int i=0;i<14000;i+=1) {
         //sprintf("%2X",&sample_data[i*2],(int)3.0*i/2048);
        sample_data[i]=fake;
-       if (i>700) {
+       if ((i/100%2)==0) {
         fake=0x55;
+       } else {
+           fake=0xaa;
        }
        //if (fake>225) {
        //    fake=25;
@@ -855,12 +942,126 @@ static scpi_result_t query_wav_yinc(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+static scpi_result_t query_bwl(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "20M");
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_inv(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0");
+
+    return SCPI_RES_OK;
+    
+}
+
+
+static scpi_result_t query_fft_split(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0");
+
+    return SCPI_RES_OK;
+    
+}
+
+static scpi_result_t query_fft_unit(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "DB");
+
+    return SCPI_RES_OK;
+    
+}
+
+
+static scpi_result_t query_fft_source(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "CHAN1");
+
+    return SCPI_RES_OK;
+    
+}
+
+
+
+
+
+static scpi_result_t query_math_disp(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0");
+
+    return SCPI_RES_OK;
+    
+}
+
+
+
+
+static scpi_result_t query_unit(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "VOLTAGE");
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t query_vern(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0");
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_timebase_delay(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0");
+
+    return SCPI_RES_OK;
+}
+
+
+static scpi_result_t query_timebase_offset(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0.0");
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t time_mode(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "XY");
+
+    return SCPI_RES_OK;
+}
+
+
+
+static scpi_result_t query_timebase_scale(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0.0");
+
+    return SCPI_RES_OK;
+}
+
+
+
+
 static scpi_result_t query_wav_yor(scpi_t * context) {
 
     SCPI_ResultMnemonic(context, "0");
 
     return SCPI_RES_OK;
 }
+
+static scpi_result_t query_wav_xor(scpi_t * context) {
+
+    SCPI_ResultMnemonic(context, "0");
+
+    return SCPI_RES_OK;
+}
+
+
 
 
 /*
@@ -894,6 +1095,28 @@ static scpi_result_t set_acq_mem(scpi_t * context) {
 
     return SCPI_RES_OK;
 }
+
+
+
+static scpi_result_t query_acq_type(scpi_t * context) {
+
+     SCPI_ResultMnemonic(context, "NORM");
+
+    return SCPI_RES_OK;
+
+}
+
+// Arearageing
+static scpi_result_t query_acq_averages(scpi_t * context) {
+
+     SCPI_ResultMnemonic(context, "2");
+
+    return SCPI_RES_OK;
+
+}
+
+
+
 
 
 static scpi_result_t query_acq_mem(scpi_t * context) {
@@ -958,6 +1181,15 @@ static scpi_result_t wav_end(scpi_t * context) {
 
 
 extern void setTimescale(float scale);
+
+// Time scale
+static scpi_result_t query_samplerate(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "140000");
+
+    return SCPI_RES_OK;
+
+}
+
 
 
 // Time scale
@@ -1055,6 +1287,31 @@ static scpi_result_t wav_read_begin(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+static scpi_result_t query_trig_edge_level(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "0.0");
+
+    return SCPI_RES_OK;
+}
+
+static scpi_result_t query_trig_holdoff(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "0.0001");
+
+    return SCPI_RES_OK;
+}
+
+
+
+static scpi_result_t set_trig_edge_level(scpi_t * context) {
+   char *result;
+    size_t len;
+    printf("TRIG ");
+ 
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        return SCPI_RES_OK;
+    }
+
+    return SCPI_RES_OK;
+}
 
  
 
@@ -1130,6 +1387,12 @@ const scpi_command_t scpi_commands[] = {
     {.pattern = "SYSTem:ERRor:COUNt?", .callback = SCPI_SystemErrorCountQ,},
     {.pattern = "SYSTem:VERSion?", .callback = SCPI_SystemVersionQ,},
 
+    {.pattern = ":DISP:GRID?", .callback = query_disp_grid,},
+    {.pattern = ":DISP:GRAD:TIME?", .callback = query_disp_grad_time,},
+
+    {.pattern = ":DISP:TYPE?", .callback = query_disp_type,},
+
+
     { .pattern = "CHAN1:DISP?", .callback = chan_disp_on,},
     { .pattern = "CHAN2:DISP?", .callback = chan_disp_off,},
     { .pattern = "CHAN3:DISP?", .callback = chan_disp_off,},
@@ -1182,6 +1445,13 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "CHAN1:COUP?", .callback = chan1_coup,},
     { .pattern = "CHAN2:COUP?", .callback = chan1_coup,},
 
+    { .pattern = "TRIG:EDG:LEV?", .callback = query_trig_edge_level,},
+    { .pattern = "TRIG:EDG:LEV", .callback = set_trig_edge_level,},
+
+    { .pattern = ":TRIG:HOLD?", .callback = query_trig_holdoff,},
+
+
+
     { .pattern = "TRIG:EDGE:SOUR?", .callback = trig_edge_source,},
     { .pattern = "TIM:OFFS?", .callback = tim_offset,},
     { .pattern = "TRIG:EDGE:SLOP?", .callback = trig_edge_slope,},
@@ -1190,6 +1460,8 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = ":LA:STAT?", .callback = la_stat_query,},
 
     { .pattern = ":TIM:SCAL", .callback = set_time_scale,},
+
+    { .pattern = ":ACQ:SRAT?", .callback = query_samplerate,},
 
 
     { .pattern = ":LA:DIG0:DISP?", .callback = chan_disp_on,},
@@ -1233,7 +1505,16 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = ":WAV:MODE", .callback = set_wav_mode,},
     { .pattern = ":WAV:END", .callback = wav_end,},
 
-    
+
+    { .pattern = ":MATH:FFT:SPL?", .callback = query_fft_split,},
+    { .pattern = ":MATH:FFT:UNIT?", .callback = query_fft_unit,},
+    { .pattern = ":MATH:FFT:SOUR?", .callback = query_fft_source,},
+
+
+    { .pattern = ":MATH:DISP?", .callback = query_math_disp,},
+
+
+
 
     { .pattern = ":SING", .callback = set_single_acq,},
 
@@ -1248,20 +1529,46 @@ const scpi_command_t scpi_commands[] = {
 
     { .pattern = ":WAV:YINC?", .callback = query_wav_yinc,},
     { .pattern = ":WAV:YOR?", .callback = query_wav_yor,},
+    { .pattern = ":WAV:XOR?", .callback = query_wav_xor,},
 
+
+    { .pattern = ":CHAN1:BWL?", .callback = query_bwl,},
+    { .pattern = ":CHAN2:BWL?", .callback = query_bwl,},
     
 
+    { .pattern = ":CHAN1:INV?", .callback = query_inv,},
+    { .pattern = ":CHAN2:INV?", .callback = query_inv,},
 
+    { .pattern = ":CHAN1:UNIT?", .callback = query_unit,},
+    { .pattern = ":CHAN2:UNIT?", .callback = query_unit,},
 
+    { .pattern = ":CHAN1:VERN?", .callback = query_vern,},
+    { .pattern = ":CHAN2:VERN?", .callback = query_vern,},
     
-    
+
+    { .pattern = ":TIM:DEL:ENAB?", .callback = query_timebase_delay,},
+
+    { .pattern = ":TIM:DEL:OFFS?", .callback = query_timebase_offset,},
+    { .pattern = ":TIM:DEL:SCAL?", .callback = time_scale,},
+    { .pattern = ":TIM:MODE?", .callback = time_mode,},
+
 
     { .pattern = "RUN", .callback = run_to_the_hills,},
     { .pattern = "STOP", .callback = stop_acquisition,},
     { .pattern = "TRIG:STAT?", .callback = trig_status,},
 
+    { .pattern = "TRIG:COUP?", .callback = query_trig_coup,},
+
+    { .pattern = "TRIG:SWE?", .callback = query_trig_sweep,},
+    { .pattern = "TRIG:MODE?", .callback = query_trig_mode,},
+    { .pattern = "TRIG:SLOP?", .callback = query_trig_slope,},
+
+    { .pattern = "TRIG:EDG:SLOP?", .callback = query_trig_edg_slope,},
 
 
+    { .pattern = "TRIG:EDG:SOUR?", .callback = query_trig_edg_source,},
+
+    { .pattern = "TRIG:EDG:SOUR", .callback = trig_edg_source,},
     
 
 //sr: [00:53.341407] scpi_tcp: Successfully sent SCPI command: ':RUN'.
@@ -1301,6 +1608,13 @@ const scpi_command_t scpi_commands[] = {
     // https://www.codeproject.com/Articles/869421/Interfacing-Rigol-Oscilloscopes-with-C
     { .pattern = "ACQ:MDEP", .callback = set_acq_mem,},
     { .pattern = "ACQ:MDEP?", .callback = query_acq_mem,},
+    { .pattern = ":ACQuire:TYPE?", .callback = query_acq_type,},
+
+    { .pattern = ":ACQuire:AVERages?", .callback = query_acq_averages,},
+
+
+
+    
     
     /* {.pattern = "STATus:OPERation?", .callback = scpi_stub_callback,}, */
     /* {.pattern = "STATus:OPERation:EVENt?", .callback = scpi_stub_callback,}, */
@@ -1326,6 +1640,7 @@ const scpi_command_t scpi_commands[] = {
     {.pattern = "MEASure:FRESistance?", .callback = SCPI_StubQ,},
     {.pattern = "MEASure:FREQuency?", .callback = SCPI_StubQ,},
     {.pattern = "MEASure:PERiod?", .callback = SCPI_StubQ,},
+    {.pattern = "MEASure:COUNt:SOURce?", .callback = measure_count_source,},
 
     {.pattern = "SYSTem:COMMunication:TCPIP:CONTROL?", .callback = SCPI_SystemCommTcpipControlQ,},
 
