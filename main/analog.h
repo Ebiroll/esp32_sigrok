@@ -9,11 +9,21 @@
 #define NUM_SAMPLES 14000
 //14000
 
+typedef enum TrigState {
+    Triggered,
+    Auto,
+    Running,
+    Maiting,
+    Stopped
+} TrigState_t;
+
+TrigState_t get_trig_state();
+
 uint8_t* get_values();
 
 uint16_t* get_digital_values();
 
-int* get_sample_values();
+uint8_t*  get_sample_values();
 
 
 // Param is task handle of task to notify

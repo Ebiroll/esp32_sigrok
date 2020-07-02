@@ -51,7 +51,7 @@
 
 
 /* a global output buffer to collect output data until it will be 'flushed' */
-#define SCPI_OUPUT_BUFFER_SIZE      (14100)
+#define SCPI_OUPUT_BUFFER_SIZE      (14012)
 char SCPI_outputBuffer[SCPI_OUPUT_BUFFER_SIZE];
 unsigned int SCPI_outputBuffer_idx = 0;
 
@@ -90,9 +90,14 @@ scpi_result_t SCPI_Flush(scpi_t * context) {
         //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
         //SCPI_outputBuffer_idx++;
 
-        int tmp=SCPI_outputBuffer_idx;
+        int tot=SCPI_outputBuffer_idx;
+        int numWritten=0;
+        while (numWritten<tot) {
+            numWritten+=write(fd,  &SCPI_outputBuffer[numWritten], tot-numWritten);
+        }
+
         SCPI_outputBuffer_idx=0;
-        return write(fd,  SCPI_outputBuffer, tmp);
+
     }
 
     return SCPI_RES_OK;

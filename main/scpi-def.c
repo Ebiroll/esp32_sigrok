@@ -772,11 +772,58 @@ static scpi_result_t query_trig_coup(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+typedef enum {
+    trig_normal,
+    trig_auto,
+    trig_single    
+} t_TrigSweep;
 
-static scpi_result_t query_trig_sweep(scpi_t * context) {
-    SCPI_ResultMnemonic(context, "AUTO");
+t_TrigSweep sweep=trig_auto;
+
+static scpi_result_t trig_swe(scpi_t * context) {
+   char *result;
+    size_t len;
+ 
+    if (SCPI_ParamCharacters(context, &result, &len,TRUE)) {
+        printf("SET_SWEEP %s\n",result);
+
+        if (strncmp(result,"NORM",4)==0) 
+        {
+            printf("NORM\n");
+            sweep=trig_normal;
+        } else  if (strncmp(result,"AUTO",4)==0) {
+            printf("AUTO\n");
+            sweep=trig_auto;
+        } else  if (strncmp(result,"SING",4)==0) {
+            printf("SING\n");
+            sweep=trig_single;
+        }
+        return SCPI_RES_OK;
+    }
+
     return SCPI_RES_OK;
 }
+
+
+static scpi_result_t query_trig_sweep(scpi_t * context) {
+    switch (sweep) {
+        case trig_normal:
+            SCPI_ResultMnemonic(context, "NORM");
+        break;
+        case trig_auto:
+            SCPI_ResultMnemonic(context, "AUTO");
+        break;
+        case trig_single:
+            SCPI_ResultMnemonic(context, "SING");
+        break;
+    }
+    return SCPI_RES_OK;
+}
+
+
+
+
+
 
 static scpi_result_t query_trig_mode(scpi_t * context) {
     SCPI_ResultMnemonic(context, "EDGE");
@@ -825,22 +872,52 @@ static scpi_result_t trig_status(scpi_t * context) {
 * "STOP"        - stopped
 
 */
+#if START_SAMPLE_TASK
 
+TrigState_t trig_state=get_trig_state();
+
+   switch(trig_state) {
+       case Triggered:
+         SCPI_ResultMnemonic(context, "TD");
+       break;
+       case Auto:
+          SCPI_ResultMnemonic(context, "AUTO");
+       break;
+       case Running:
+          SCPI_ResultMnemonic(context, "RUN");
+       break;
+       case Maiting:
+          SCPI_ResultMnemonic(context, "WAIT");
+       break;
+       case Stopped:
+          SCPI_ResultMnemonic(context, "STOP");
+       break;
+       default:
+          SCPI_ResultMnemonic(context, "STOP");
+       break;
+   }
+
+#else
 times_called++;
+
+          SCPI_ResultMnemonic(context, "AUTO");
+return SCPI_RES_OK;
+
 
 if (times_called>10) {
   SCPI_ResultMnemonic(context, "STOP");
-  //printf("STOP");
+  printf("STOP-");
 } else if (times_called>4) {
   SCPI_ResultMnemonic(context, "TD");
-  //printf("TD");
+  printf("TD-");
 } else if (times_called>2) {
  SCPI_ResultMnemonic(context, "RUN");
-  //printf("RUN");
+  printf("RUN-");
 } else {
-  //printf("WAIT");
+  printf("WAIT-");
  SCPI_ResultMnemonic(context, "WAIT");    
 }
+#endif
 
 return SCPI_RES_OK;
 }
@@ -848,6 +925,8 @@ return SCPI_RES_OK;
 unsigned char sample_data[14000+12];
 
 bool readDigital=false;
+
+
 
 //http://int.rigol.com/File/TechDoc/20151218/MSO1000Z&DS1000Z_ProgrammingGuide_EN.pdf
 static scpi_result_t wav_data(scpi_t * context) {
@@ -874,7 +953,7 @@ if (readDigital) {
         result++;
     }
 } else {
-    printf("ANAL\n");
+    //printf("ANAL\n");
 
     uint8_t* result=get_values();
     for (int i=0;i<memLen;i++) {
@@ -1114,6 +1193,18 @@ static scpi_result_t query_acq_averages(scpi_t * context) {
     return SCPI_RES_OK;
 
 }
+
+static scpi_result_t autoscale(scpi_t * context) {
+
+    #ifdef START_SAMPLE_TASK
+    start_sampling();
+    #endif
+
+    return SCPI_RES_OK;
+
+}
+
+
 
 
 
@@ -1560,6 +1651,8 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "TRIG:COUP?", .callback = query_trig_coup,},
 
     { .pattern = "TRIG:SWE?", .callback = query_trig_sweep,},
+    { .pattern = "TRIG:SWE", .callback =  trig_swe,},
+
     { .pattern = "TRIG:MODE?", .callback = query_trig_mode,},
     { .pattern = "TRIG:SLOP?", .callback = query_trig_slope,},
 
@@ -1612,6 +1705,10 @@ const scpi_command_t scpi_commands[] = {
 
     { .pattern = ":ACQuire:AVERages?", .callback = query_acq_averages,},
 
+
+
+
+    {.pattern = "AUT", .callback = autoscale,},
 
 
     
