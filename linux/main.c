@@ -232,11 +232,12 @@ int main(int argc, char** argv) {
         socklen_t clilen;
 
         clilen = sizeof (cliaddr);
+        rc = waitServer(listenfd);
         clifd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen);
 
         if (clifd < 0) continue;
 
-        printf("Connection established %s\r\n", inet_ntoa(cliaddr.sin_addr));
+        printf("Connection established %s,%d\r\n", inet_ntoa(cliaddr.sin_addr),clifd);
 
         scpi_context.user_context = &clifd;
 
