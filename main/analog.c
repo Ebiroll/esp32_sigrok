@@ -20,6 +20,13 @@
 #define CPU_FREQ CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ
 #endif
 
+TrigType_t gAnalogTrigType=Invalid;
+
+void setAnalogTrig(TrigType_t trig_type) {
+    gAnalogTrigType=trig_type;
+}
+
+
 int trig_pin=-1;
 
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
@@ -242,7 +249,7 @@ int* get_sample_values() {
     sample_point=0;
     return analouge_in_values;
 }
-
+//  if (ccount_delay<8000) 
 void move_analog_data() {
    int min=35000;
    int max=-35000;
@@ -258,16 +265,36 @@ void move_analog_data() {
     if (max==0) {
         max=1;
     }
-    int sample_ix=0;
-    printf("min,max,%d,%d\n",min,max);
-    // We compress values to get max output, dont rely on actual measured values!!
-    for(int i=0;i<NUM_SAMPLES;i++) {
-        //uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
-        analouge_values[sample_ix]=127+(110*(analouge_in_values[sample_ix]-(max/2))/max);   
-        //analouge_values[sample_ix]=voltage_to_RawByte(analouge_in_values[sample_ix]);
-        sample_ix++;
-    }
 
+    if (ccount_delay<8000) {
+        int sampleIx=0;
+        uint32_t oneSample_time=0;
+        int delta=0;
+        // First time around we get a cache miss, then delays becomes stable
+        for (int sample_point=20;sample_point<(NUM_SAMPLES*19) && (sampleIx<NUM_SAMPLES);sample_point+=20) {
+            oneSample_time=cc_and_digital[sample_point+20]/20;
+            for (int j=1;j<20;j++) {
+                delta+=oneSample_time;
+                if(delta>ccount_delay) {
+                       analouge_values[sampleIx]=127+(110*(analouge_in_values[sample_point/20]-(max/2))/max);
+                       sampleIx++;
+                       delta-=ccount_delay;
+                }
+            }       
+            //printf(" %d %d\n",sampleIx,cc_and_digital[sample_point]);
+        }
+
+    } else {
+        int sample_ix=0;
+        printf("min,max,%d,%d\n",min,max);
+        // We compress values to get max output, dont rely on actual measured values!!
+        for(int i=0;i<NUM_SAMPLES;i++) {
+            //uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
+            analouge_values[sample_ix]=127+(110*(analouge_in_values[sample_ix]-(max/2))/max);   
+            //analouge_values[sample_ix]=voltage_to_RawByte(analouge_in_values[sample_ix]);
+            sample_ix++;
+        }
+    }
 
 }
 
@@ -282,7 +309,12 @@ uint8_t* get_values() {
     return analouge_values;
 };
 
+bool single_shot=false;
+
+bool stop_aq=false;
+
 uint16_t* get_digital_values() {
+    stop_aq=true;
     if (ccount_delay<8000) { 
         printf("RESAMP\n");
         // Resample to desired rate
@@ -315,13 +347,70 @@ void set_mem_depth(int depth) {
     }
 }
 
-bool single_shot=false;
-
-bool stop_aq=false;
 
 void stop_aquisition() {
     stop_aq=true;
 }
+
+
+void waitForAnalogTrig() {
+    uint32_t voltage;
+    g_trig_state=Waiting;
+    sample_point=0;
+    bool trig=false;
+    printf("Waiting for analog trigger %d\n",gAnalogTrigType);
+    uint32_t avreage=0;
+
+    while (sample_point<=10)
+    {
+        voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+
+        //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
+
+        __asm__("MEMW");  
+        analouge_in_values[sample_point++]=voltage;
+    }
+    for (int i=0;i<10;i++) {
+        avreage+=analouge_in_values[i]/10;
+    }
+    sample_point=0;
+    int accumulated_ccount=0;
+
+    while (!trig) {
+            while (accumulated_ccount<ccount_delay) {
+                // vTaskDelay(200 / portTICK_PERIOD_MS);
+                taskYIELD();
+                accumulated_ccount+=get_delta();
+                if (stop_aq==true) {
+                    break;
+                }
+            }
+        __asm__("MEMW");  
+        voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+        if (abs(voltage-avreage)>20) {
+            trig=true;
+        }
+
+        analouge_in_values[sample_point]=voltage;
+
+        sample_point++;
+        if (sample_point>=NUM_SAMPLES) {
+            sample_point=0;
+        }
+    }
+    
+    // Move captured data before trigger to buffer
+    int trig_point=sample_point-20;
+    if (trig_point<0) {
+        trig_point=0;
+    } else {
+        for (int j=0;j<20;j++) {
+            analouge_in_values[j]=analouge_in_values[j+trig_point];
+        }
+        sample_point=20;
+    }
+}
+
 
 
 //int time_called=0;;
@@ -379,25 +468,29 @@ void sample_thread(void *param) {
         test=get_delta();
 
         int breakout=0;
-        if (trig_pin>=0) {
-            g_trig_state=Waiting;
-            printf("Waiting for trigger %d\n",trig_pin);
-            uint16_t tmp=parallel_read();
-            tmp=parallel_read();
-            uint16_t next=parallel_read();
+        if (gAnalogTrigType!=Invalid) {
+            waitForAnalogTrig();
+        } else {
+            if (trig_pin>=0) {
+                g_trig_state=Waiting;
+                printf("Waiting for trigger %d\n",trig_pin);
+                uint16_t tmp=parallel_read();
+                tmp=parallel_read();
+                uint16_t next=parallel_read();
 
-            while ((((1<<trig_pin) & tmp)==((1<<trig_pin) & next)) && (stop_aq==false)) {
-                uint32_t dummy = REG_READ(DUMMY);
-                // Check if value changed
-                next=parallel_read();
-                if (breakout++>10000) {
-                    next=!tmp;
+                while ((((1<<trig_pin) & tmp)==((1<<trig_pin) & next)) && (stop_aq==false)) {
+                    uint32_t dummy = REG_READ(DUMMY);
+                    // Check if value changed
+                    next=parallel_read();
+                    if (breakout++>10000) {
+                        next=!tmp;
+                    }
                 }
+                printf("Trigged at %d %X %X\n",breakout,tmp,next);
             }
-            printf("Trigged at %d %X %X\n",breakout,tmp,next);
         }
 
-        //g_trig_state=Running;
+        g_trig_state=Running;
 
 
         test=get_delta();
@@ -475,7 +568,7 @@ void sample_thread(void *param) {
 
                 // TDOD, RAW analouge values, this confuses timing
                 voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
-                //analouge_in_values[sample_point/20]=voltage;
+                analouge_in_values[sample_point/20]=voltage;
                 taskYIELD();
 
                 sample_point+=20;
@@ -522,7 +615,10 @@ void sample_thread(void *param) {
         move_analog_data();
         printf("++++++++++++++++++++\n");
         g_trig_state=Triggered;
-
+        // Make sure analog and digital data is from same sample run
+        if (gAnalogTrigType==Invalid) {
+            vTaskDelay(200 / portTICK_PERIOD_MS);
+        }
 
     } while  (stop_aq==false && single_shot==false);
     g_trig_state=Stopped;

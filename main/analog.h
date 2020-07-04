@@ -18,6 +18,16 @@ typedef enum TrigState {
 } TrigState_t;
 
 TrigState_t get_trig_state();
+
+typedef enum TrigType {
+    Pos,
+    Neg,
+    RiseFall,
+    Invalid
+} TrigType_t;
+
+void setAnalogTrig(TrigType_t trig_type);
+
 uint8_t* get_values();
 
 uint16_t* get_digital_values();

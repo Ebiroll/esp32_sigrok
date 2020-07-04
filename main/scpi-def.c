@@ -835,15 +835,26 @@ static scpi_result_t query_trig_slope(scpi_t * context) {
     return SCPI_RES_OK;
 }
 
+TrigType_t gSlopeTrigType=Pos;
+
 static scpi_result_t query_trig_edg_slope(scpi_t * context) {
     SCPI_ResultMnemonic(context, "POS");
     return SCPI_RES_OK;
 }
 
+static scpi_result_t set_trig_edg_slope(scpi_t * context) {
+    setAnalogTrig(Pos);
+    return SCPI_RES_OK;
+}
+
+
+
+
 static scpi_result_t query_trig_edg_source(scpi_t * context) {
     SCPI_ResultMnemonic(context, "CHAN1");
     return SCPI_RES_OK;
 }
+
 
 // Set source
 static scpi_result_t trig_edg_source(scpi_t * context) {
@@ -854,6 +865,8 @@ static scpi_result_t trig_edg_source(scpi_t * context) {
         printf("Trig edge %s\n",result);
         return SCPI_RES_OK;
     }
+
+
 
     return SCPI_RES_OK;
 }
@@ -958,7 +971,7 @@ if (readDigital) {
         result++;
     }
 } else {
-    //printf("ANAL\n");
+    printf("ANAL\n");
 
     uint8_t* result=get_values();
     for (int i=0;i<memLen;i++) {
@@ -1014,9 +1027,11 @@ static scpi_result_t wav_stat(scpi_t * context) {
 
     if (get_trig_state()==Running) {
       sprintf(tmp_buff,"READ,%d",memLen);
+      stop_aquisition();
       printf("---->%s",tmp_buff);
     } else {
       sprintf(tmp_buff,"IDLE,%d",memLen);
+      stop_aquisition();
       printf("---->%s",tmp_buff);
     }
     SCPI_ResultCharacters(context, tmp_buff,strlen(tmp_buff));
@@ -1682,9 +1697,13 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = "TRIG:SLOP?", .callback = query_trig_slope,},
 
     { .pattern = "TRIG:EDG:SLOP?", .callback = query_trig_edg_slope,},
+    { .pattern = "TRIG:EDG:SLOP", .callback = set_trig_edg_slope,},
 
 
     { .pattern = "TRIG:EDG:SOUR?", .callback = query_trig_edg_source,},
+
+
+
 
     { .pattern = "TRIG:EDG:SOUR", .callback = trig_edg_source,},
     
