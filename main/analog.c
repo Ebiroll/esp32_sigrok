@@ -11,6 +11,7 @@
 #include "sdkconfig.h"
 #define USE_SEMA 1
 #include "soc/efuse_reg.h"
+#include <esp_int_wdt.h>
 
 
 #ifdef CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
@@ -23,7 +24,7 @@ int trig_pin=-1;
 
 //At initialization, you need to configure all 8 pins a GPIOs, e.g. by setting them all as inputs:
 
-TrigState_t g_trig_state=Auto;
+TrigState_t g_trig_state=Stopped;
 
 TrigState_t get_trig_state(){
     return(g_trig_state);
@@ -242,14 +243,7 @@ int* get_sample_values() {
     return analouge_in_values;
 }
 
-
-uint8_t* get_values() {
-  /*
-    esp_adc_cal_characteristics_t characteristics;
-    esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
-
-    sample_point=0;
-    */
+void move_analog_data() {
    int min=35000;
    int max=-35000;
 
@@ -269,10 +263,21 @@ uint8_t* get_values() {
     // We compress values to get max output, dont rely on actual measured values!!
     for(int i=0;i<NUM_SAMPLES;i++) {
         //uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
-        analouge_values[sample_ix]=127+127*(analouge_in_values[sample_ix]-(max/2))/max;   // voltage_to_RawByte(mv)
+        analouge_values[sample_ix]=127+(110*(analouge_in_values[sample_ix]-(max/2))/max);   
         //analouge_values[sample_ix]=voltage_to_RawByte(analouge_in_values[sample_ix]);
         sample_ix++;
     }
+
+
+}
+
+uint8_t* get_values() {
+  /*
+    esp_adc_cal_characteristics_t characteristics;
+    esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
+
+    sample_point=0;
+    */
   
     return analouge_values;
 };
@@ -310,7 +315,10 @@ void set_mem_depth(int depth) {
     }
 }
 
+bool single_shot=false;
+
 bool stop_aq=false;
+
 void stop_aquisition() {
     stop_aq=true;
 }
@@ -319,7 +327,7 @@ void stop_aquisition() {
 //int time_called=0;;
 void sample_thread(void *param) {
 
-    stop_aq=false;
+  
     TaskHandle_t *notify_task=(TaskHandle_t *)param;
 
     for (int i=0;i<NUM_SAMPLES;i++) {
@@ -365,162 +373,166 @@ void sample_thread(void *param) {
 
 #define DUMMY EFUSE_BLK0_RDATA3_REG
 
-    sample_point=0;
-
-    test=get_delta();
-
-    int breakout=0;
-    if (trig_pin>=0) {
-        g_trig_state=Waiting;
-        printf("Waiting for trigger %d\n",trig_pin);
-        uint16_t tmp=parallel_read();
-        tmp=parallel_read();
-        uint16_t next=parallel_read();
-
-        while ((((1<<trig_pin) & tmp)==((1<<trig_pin) & next)) && (stop_aq==false)) {
-            uint32_t dummy = REG_READ(DUMMY);
-            // Check if value changed
-            next=parallel_read();
-             if (breakout++>10000) {
-                 next=!tmp;
-             }
-        }
-        printf("Trigged at %d %X %X\n",breakout,tmp,next);
-    }
-
-    g_trig_state=Running;
-
-
-    test=get_delta();
-
-    if (ccount_delay<8000) { 
-        printf("-----------------------\n");
-
-        // Disable  C callable interrupts 
-        //portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
-        //taskENTER_CRITICAL(&myMutex);
-        while (sample_point<NUM_SAMPLES*19) {
-
-            // Every 20 th value is the lower 16 bits of the clock count
-            test=get_delta();
-            cc_and_digital[sample_point]= test & 0xffff;
-            //digital_in_values[sample_point+1]= test >> 16;
-            // The dummy reads are to create a delay and for workaround
-            uint32_t dummy = REG_READ(DUMMY);
-            __asm__("MEMW");
-            cc_and_digital[sample_point+1]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");
-            cc_and_digital[sample_point+2]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");
-            cc_and_digital[sample_point+3]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");    
-            cc_and_digital[sample_point+4]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");
-            cc_and_digital[sample_point+5]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+6]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");          
-            cc_and_digital[sample_point+7]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+8]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+9]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+10]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+11]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+12]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+13]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+14]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW"); 
-            cc_and_digital[sample_point+15]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");          
-            cc_and_digital[sample_point+16]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");          
-            cc_and_digital[sample_point+17]=parallel_read();
-            dummy = REG_READ(DUMMY);
-            __asm__("MEMW");
-            cc_and_digital[sample_point+18]=parallel_read();
-            dummy = REG_READ(DUMMY);          
-            __asm__("MEMW");
-            cc_and_digital[sample_point+19]=parallel_read();
-
-            // TDOD, RAW analouge values, this confuses timing
-            //voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
-            //analouge_in_values[sample_point/20]=voltage;
-            //taskYIELD();
-
-            sample_point+=20;
-        }
-        //end critical section
-        //taskEXIT_CRITICAL(&myMutex);
-
-    } else {
- 
-         printf("ooooooooooooooooo\n");
-
+    do {
         sample_point=0;
-        // cache
-        //digital_in_values[sample_point]=parallel_read();
-        //digital_in_values[NUM_SAMPLES/2]=parallel_read();
 
-        while (sample_point<maxSamples && (stop_aq==false)) {
-            while (accumulated_ccount<ccount_delay) {
-                // vTaskDelay(2000 / portTICK_PERIOD_MS);
-                taskYIELD();
-                accumulated_ccount+=get_delta();
-                if (stop_aq==true) {
-                    break;
+        test=get_delta();
+
+        int breakout=0;
+        if (trig_pin>=0) {
+            g_trig_state=Waiting;
+            printf("Waiting for trigger %d\n",trig_pin);
+            uint16_t tmp=parallel_read();
+            tmp=parallel_read();
+            uint16_t next=parallel_read();
+
+            while ((((1<<trig_pin) & tmp)==((1<<trig_pin) & next)) && (stop_aq==false)) {
+                uint32_t dummy = REG_READ(DUMMY);
+                // Check if value changed
+                next=parallel_read();
+                if (breakout++>10000) {
+                    next=!tmp;
                 }
             }
-            // Max digital..
-            voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
-
-            //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
-
-            __asm__("MEMW");  
-            digital_in_values[sample_point]=parallel_read();
-            uint32_t dummy = REG_READ(DUMMY);
-            //sample_point++;
-            analouge_in_values[sample_point++]=voltage;
-            //if (time_called++%100==0) {
-            //    printf("-%d\n",accumulated_ccount);    
-            //}
-
-            accumulated_ccount-=ccount_delay;
+            printf("Trigged at %d %X %X\n",breakout,tmp,next);
         }
-    }
 
-    printf("++++++++++++++++++++\n");
-    g_trig_state=Triggered;
+        //g_trig_state=Running;
 
 
+        test=get_delta();
 
-#if USE_SEMA
-    if (got_sem) {
-       xSemaphoreGive(xSemaphore);
-    }
-    vTaskDelete(NULL);
-#endif
+        if (ccount_delay<8000) { 
+            printf("-----------------------\n");
+
+            // Disable  C callable interrupts 
+            //portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
+            //taskENTER_CRITICAL(&myMutex);
+            while (sample_point<NUM_SAMPLES*19) {
+
+                // Every 20 th value is the lower 16 bits of the clock count
+                test=get_delta();
+                cc_and_digital[sample_point]= test & 0xffff;
+                //digital_in_values[sample_point+1]= test >> 16;
+                // The dummy reads are to create a delay and for workaround
+                uint32_t dummy = REG_READ(DUMMY);
+                __asm__("MEMW");
+                cc_and_digital[sample_point+1]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");
+                cc_and_digital[sample_point+2]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");
+                cc_and_digital[sample_point+3]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");    
+                cc_and_digital[sample_point+4]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");
+                cc_and_digital[sample_point+5]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+6]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");          
+                cc_and_digital[sample_point+7]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+8]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+9]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+10]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+11]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+12]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+13]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+14]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW"); 
+                cc_and_digital[sample_point+15]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");          
+                cc_and_digital[sample_point+16]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");          
+                cc_and_digital[sample_point+17]=parallel_read();
+                dummy = REG_READ(DUMMY);
+                __asm__("MEMW");
+                cc_and_digital[sample_point+18]=parallel_read();
+                dummy = REG_READ(DUMMY);          
+                __asm__("MEMW");
+                cc_and_digital[sample_point+19]=parallel_read();
+
+                // TDOD, RAW analouge values, this confuses timing
+                voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+                //analouge_in_values[sample_point/20]=voltage;
+                taskYIELD();
+
+                sample_point+=20;
+            }
+            //end critical section
+            //taskEXIT_CRITICAL(&myMutex);
+
+        } else {
+    
+            printf("ooooooooooooooooo\n");
+
+            sample_point=0;
+            // cache
+            //digital_in_values[sample_point]=parallel_read();
+            //digital_in_values[NUM_SAMPLES/2]=parallel_read();
+
+            while (sample_point<maxSamples && (stop_aq==false)) {
+                while (accumulated_ccount<ccount_delay) {
+                    // vTaskDelay(2000 / portTICK_PERIOD_MS);
+                    taskYIELD();
+                    accumulated_ccount+=get_delta();
+                    if (stop_aq==true) {
+                        break;
+                    }
+                }
+                // Max digital..
+                voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+
+                //voltage = adc1_to_voltage(ADC1_TEST_CHANNEL, &characteristics);
+
+                __asm__("MEMW");  
+                digital_in_values[sample_point]=parallel_read();
+                uint32_t dummy = REG_READ(DUMMY);
+                //sample_point++;
+                analouge_in_values[sample_point++]=voltage;
+                //if (time_called++%100==0) {
+                //    printf("-%d\n",accumulated_ccount);    
+                //}
+
+                accumulated_ccount-=ccount_delay;
+            }
+        }
+
+        move_analog_data();
+        printf("++++++++++++++++++++\n");
+        g_trig_state=Triggered;
+
+
+    } while  (stop_aq==false && single_shot==false);
+    g_trig_state=Stopped;
+
+    #if USE_SEMA
+        if (got_sem) {
+            xSemaphoreGive(xSemaphore);
+        }
+        vTaskDelete(NULL);
+    #endif
 return;
 }
 
@@ -534,6 +546,13 @@ void start_sampling(bool single) {
         setup_digital();
         xSemaphore = xSemaphoreCreateMutex();
     }
+    stop_aq=false;
+
+    if (single) {
+          single_shot=true;
+    } else {
+          single_shot=false;
+    }
 
 #if USE_SEMA
     xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, 1);
@@ -543,15 +562,13 @@ void start_sampling(bool single) {
 }
 
 bool samples_finnished() {
-    stop_aq=true;
     bool ret=false;
     if (xSemaphore==NULL) {
         setup_digital();
         xSemaphore = xSemaphoreCreateMutex();
     }
 
-#if USE_SEMA
-
+#if 0
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 100000 );
 
     if (xSemaphoreTake(xSemaphore,xMaxBlockTime)) {
