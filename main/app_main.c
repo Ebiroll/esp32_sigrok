@@ -2,7 +2,7 @@
 /*
 MIT License
 
-Copyright (c) 2019 Olof Astrand (Ebiroll)
+Copyright (c) 2020 Olof Astrand (Ebiroll)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -250,9 +250,9 @@ void send_remote_pulses() {
   rmt_config(&config);
   rmt_driver_install(config.channel, 0, 0);  //  rmt_driver_install(rmt_channel_t channel, size_t rx_buf_size, int rmt_intr_num)
    
-  items[0].duration0 = 500;  // 0.5 ms (30)
+  items[0].duration0 = 1500;  // 0.5 ms (30)
   items[0].level0 = 1;
-  items[0].duration1 = 250;   // 0.25 ms  (15)
+  items[0].duration1 = 3000;   // 250  0.25 ms  (15)
   items[0].level1 = 0;  
 
 }

@@ -9,6 +9,15 @@
 #define NUM_SAMPLES 2048
 //14000
 
+typedef enum TrigState {
+    Triggered,
+    Auto,
+    Running,
+    Waiting,
+    Stopped
+} TrigState_t;
+
+TrigState_t get_trig_state();
 uint8_t* get_values();
 
 uint16_t* get_digital_values();

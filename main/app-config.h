@@ -8,7 +8,7 @@
 //#define DEBUG_LOG_ENABLE 1
 //#define OTA_RUN_SERVER 1
 
-// First pin for parallell input 13-20
+// First pin for parallell input 13-29, note that some pins are ot used, (20,24,28,29)
 #define PARALLEL_0  13
 
 #define UART_TEST_OUTPUT 1
@@ -19,7 +19,7 @@
 //#define USE_CAMERA_IF 1
 #define PIXEL_LEDC_PIN 22
 
-#define PULSE_PIN 15
+#define PULSE_PIN 14
 #define RMT_PULSES 1
 
 

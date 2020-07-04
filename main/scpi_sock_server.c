@@ -90,9 +90,13 @@ scpi_result_t SCPI_Flush(scpi_t * context) {
         //SCPI_outputBuffer[SCPI_outputBuffer_idx] = 0x0a;
         //SCPI_outputBuffer_idx++;
 
-        int tmp=SCPI_outputBuffer_idx;
+        int tot=SCPI_outputBuffer_idx;
+        int numWritten=0;
+        while (numWritten<tot) {
+            numWritten+=write(fd,  &SCPI_outputBuffer[numWritten], tot-numWritten);
+        }
         SCPI_outputBuffer_idx=0;
-        return write(fd,  SCPI_outputBuffer, tmp);
+
     }
 
     return SCPI_RES_OK;
@@ -228,6 +232,9 @@ static void scpi_server_thread(void *arg) {
         int clifd;
         struct sockaddr_in cliaddr;
         socklen_t clilen;
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+
+        printf("Connection established %s\r\n", inet_ntoa(cliaddr.sin_addr));
 
         clilen = sizeof (cliaddr);
         clifd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen);
@@ -272,7 +279,7 @@ static void scpi_server_thread(void *arg) {
     return (EXIT_SUCCESS);
 }
 
-#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 8)
+#define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 2)
 
 
 extern TaskHandle_t xTaskList[20];

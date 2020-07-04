@@ -53,17 +53,22 @@ PIN 36 is used for CH1
 Sampling is not properly calibrated, and code needs some care.
 ```
 
+# esp32s2
+In branch esp32s2 you have esp32s2 support.
+Currenly it only runs with Extra SPIRam
+Analog input is on PIN1
+
 
 # DMA sampling
 
 Note, the only way to make this usable, would to use DMA with a steady campling rate.
 I try to use this in sampler.c, but was not successful 
 If you would like to try, do change to #if 1 in sampler.c and #if 0 in analog.c
+```
 The pixel clock is defined in app-config .h
     PIXEL_LEDC_PIN 22
 Here I use Pin 27 for debugging (ledPin)
-This would have allowed data source from memory.
-
+```
 
 # Sump
 You have to change configuration in app-config.h to get this to work
@@ -81,7 +86,7 @@ sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5 --scan
 
 ![sump_uart](sump_uart.png)
 
-# added experimental tft drawing
+# Added experimental tft drawing
 Just set correct display in config.
 The green line has a quarter of the sampling speed comapre to the white line
 ```
@@ -205,7 +210,7 @@ Another good idea, might be to set these values.
   Bootloader log verbosity (No output)  --->    
   Compiler options ->  Optimization Level (Release (-Os)) 
 ```
-Otherwise they will interfer with the SUMP protocol.
+Otherwise they will interfere with the SUMP protocol.
 
 To get some test data, connect  a 500/250 microS pulse is generated with the remote device on pin 14 (D2)
 ```
@@ -254,7 +259,7 @@ With my version of sigrok and esp-idf rigol-ds will  work 9/10 times.
 
 To get more stable performance try removing the driver you dont plan to use in app_main()
 
-For analog data with rigol driver
+You should use the app-config.h file to set the behaviour you want.
 ```
     //init_uart();
 
@@ -411,6 +416,8 @@ To test reading data with sump.
 
 
 # Some other SUMP implementations,
+
+https://github.com/EUA/ESP32_LogicAnalyzer
 
 https://github.com/hydrabus/hydrafw/wiki/HydraFW-SUMP-guide
 
