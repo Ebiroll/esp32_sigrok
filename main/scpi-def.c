@@ -748,9 +748,9 @@ command,  or  a  single  acquisition  has  occurred  when  the  Trigger
 mode is  set  to  “Single”.
 */
 times_called=0;
-
+printf("RUN\n");
 #ifdef START_SAMPLE_TASK
-start_sampling();
+start_sampling(false);
 #endif
 return SCPI_RES_OK;
 }
@@ -1011,9 +1011,14 @@ static scpi_result_t wav_yref(scpi_t * context) {
 
 static scpi_result_t wav_stat(scpi_t * context) {
     char tmp_buff[20];
-    sprintf(tmp_buff,"IDLE,%d",memLen);
-    printf("---->%s",tmp_buff);
 
+    if (get_trig_state()==Running) {
+      sprintf(tmp_buff,"READ,%d",memLen);
+      printf("---->%s",tmp_buff);
+    } else {
+      sprintf(tmp_buff,"IDLE,%d",memLen);
+      printf("---->%s",tmp_buff);
+    }
     SCPI_ResultCharacters(context, tmp_buff,strlen(tmp_buff));
 
     return SCPI_RES_OK;
@@ -1201,8 +1206,11 @@ static scpi_result_t query_acq_averages(scpi_t * context) {
 
 static scpi_result_t autoscale(scpi_t * context) {
 
+
+    printf("AUTOSCALE\n");
+
     #ifdef START_SAMPLE_TASK
-    start_sampling();
+    //start_sampling();
     #endif
 
     return SCPI_RES_OK;
@@ -1244,8 +1252,9 @@ static scpi_result_t set_single_acq(scpi_t * context) {
 
 times_called=0;
 
+printf("SINGLE\n");
 #ifdef START_SAMPLE_TASK
-start_sampling();
+start_sampling(true);
 #endif
 
    return SCPI_RES_OK;
@@ -1285,6 +1294,16 @@ static scpi_result_t query_samplerate(scpi_t * context) {
     return SCPI_RES_OK;
 
 }
+
+// Time scale
+static scpi_result_t query_acq_mode(scpi_t * context) {
+    SCPI_ResultMnemonic(context, "AUTO");
+
+    return SCPI_RES_OK;
+
+}
+
+
 
 
 
@@ -1558,6 +1577,7 @@ const scpi_command_t scpi_commands[] = {
     { .pattern = ":TIM:SCAL", .callback = set_time_scale,},
 
     { .pattern = ":ACQ:SRAT?", .callback = query_samplerate,},
+    { .pattern = ":ACQ:MODE?", .callback = query_acq_mode,},
 
 
     { .pattern = ":LA:DIG0:DISP?", .callback = chan_disp_on,},

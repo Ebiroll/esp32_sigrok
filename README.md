@@ -49,9 +49,17 @@ Only datasource live works.
 
 # Analogue
 ```
-PIN 36 is used for CH1 
+PIN 36 is used for CH1, on esp32s2 PIN 1
 Sampling is not properly calibrated, and code needs some care.
 ```
+If you want to use only the analog input, you can use this program.
+https://github.com/Ebiroll/DSRemote
+
+![sump_uart](rigol.png)
+
+For the testsignal in the image, I used this 20Hz, square wave.
+http://www.keuwl.com/FunctionGenerator/
+
 
 # esp32s2
 In branch esp32s2 you have esp32s2 support.
@@ -244,6 +252,10 @@ static void uartWRITETask(void *inpar) {
 ![uart](uart.png)
 
 # Project status
+Analog values are compressed sp the actual values are not correct.
+The remote device has stopped working, not sure if this is an esp-idf issue or some accidental change in my code.  
+I removed it from the default setting.
+
 Now it is working with sigrok and the latest version of esp-idf.
 
 Perhaps this bugfix was helpful, but initially the SUMP protocol was not working
@@ -255,9 +267,9 @@ If you test repeatedly with
 sigrok-cli -d ols:conn=/dev/ttyUSB1 -l 5 --scan
 sigrok-cli -d rigol-ds:conn=tcp-raw/192.168.1.130/5555  -l 5 --scan
 ```
-With my version of sigrok and esp-idf rigol-ds will  work 9/10 times. 
+With my version of sigrok and esp-idf rigol-ds now works 10/10 times
 
-To get more stable performance try removing the driver you dont plan to use in app_main()
+The sump part of the code has not received much attention lately, but probably works.
 
 You should use the app-config.h file to set the behaviour you want.
 ```

@@ -30,7 +30,7 @@ void sample_thread(void *param);
 
 void setTimescale(float scale);
 
-void start_sampling();
+void start_sampling(bool single);
 
 bool samples_finnished();
 

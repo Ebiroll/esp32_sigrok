@@ -19,8 +19,8 @@
 //#define USE_CAMERA_IF 1
 #define PIXEL_LEDC_PIN 22
 
-#define PULSE_PIN 14
-#define RMT_PULSES 1
+#define PULSE_PIN 15
+//#define RMT_PULSES 1
 
 
 

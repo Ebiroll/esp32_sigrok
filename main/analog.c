@@ -213,7 +213,8 @@ AV/VD + 4.6/VD = (240 -R) / 25
 #define VD 0.5
 
 uint8_t voltage_to_RawByte(uint32_t voltage) {
-    uint8_t ret=240 - 25*(voltage/(1000.0*VD) +4.6/VD) ;
+    //uint8_t ret=240 - 25*(voltage/(1000.0*VD) +4.6/VD) ;
+    uint8_t ret=127 - (voltage-1200) /50.0 ;
 
     return(ret);
 }
@@ -229,14 +230,14 @@ int* get_sample_values() {
     Use esp_adc_cal_characterize()
 
     */
-
+/*
     sample_point=0;
     for(int i=0;i<NUM_SAMPLES;i++) {
       uint32_t mv= analouge_in_values[sample_point];  //esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point]	, &characteristics);
         analouge_in_values[sample_point]=mv;
         sample_point++;
     }
-
+*/
     sample_point=0;
     return analouge_in_values;
 }
@@ -260,30 +261,25 @@ uint8_t* get_values() {
             max=analouge_in_values[i];
         }
     }
+    if (max==0) {
+        max=1;
+    }
+    int sample_ix=0;
     printf("min,max,%d,%d\n",min,max);
     // We compress values to get max output, dont rely on actual measured values!!
     for(int i=0;i<NUM_SAMPLES;i++) {
         //uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
-        analouge_values[sample_point]=127*analouge_in_values[sample_point]/max;   // voltage_to_RawByte(mv)
-        sample_point++;
+        analouge_values[sample_ix]=127+127*(analouge_in_values[sample_ix]-(max/2))/max;   // voltage_to_RawByte(mv)
+        //analouge_values[sample_ix]=voltage_to_RawByte(analouge_in_values[sample_ix]);
+        sample_ix++;
     }
   
-    sample_point=0;
     return analouge_values;
 };
 
 uint16_t* get_digital_values() {
     if (ccount_delay<8000) { 
         printf("RESAMP\n");
-#if 0
-        int sampleIx=0;
-        for (int sample_point=0;sample_point<NUM_SAMPLES;sample_point++) {
-            if (sample_point%20!=0) {
-                digital_in_values[sampleIx++]=cc_and_digital[sample_point];
-            } 
-        }
-    }
-#endif
         // Resample to desired rate
         int sampleIx=0;
         uint32_t oneSample_time=0;
@@ -409,7 +405,6 @@ void sample_thread(void *param) {
             test=get_delta();
             cc_and_digital[sample_point]= test & 0xffff;
             //digital_in_values[sample_point+1]= test >> 16;
-//GPIO_STRAP_REG
             // The dummy reads are to create a delay and for workaround
             uint32_t dummy = REG_READ(DUMMY);
             __asm__("MEMW");
@@ -533,7 +528,7 @@ return;
 
 
 
-void start_sampling() {
+void start_sampling(bool single) {
 
     if (xSemaphore==NULL) {
         setup_digital();

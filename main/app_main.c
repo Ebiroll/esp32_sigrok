@@ -63,7 +63,6 @@ SOFTWARE.
 
 
 
-#define STEP_PIN  GPIO_NUM_21
 
 static const char *TAG = "sigrok";
 
@@ -114,7 +113,7 @@ static void init_uart_1()
 
 
   uart_config_t uart_config = {
-      .baud_rate = 9600,                    //baudrate was 9600 (2400=)
+      .baud_rate = 2400,                    //baudrate was 9600 (2400=)
       .data_bits = UART_DATA_8_BITS,          //data bit mode
       .parity = UART_PARITY_DISABLE,          //parity mode
       .stop_bits = UART_STOP_BITS_1,          //stop bit mode
@@ -144,7 +143,7 @@ static void uartWRITETask(void *inpar) {
 
   while(true) {
     (void) uart_write_bytes(uart_num, (const char *)echoLine, 8);
-    vTaskDelay(18 / portTICK_PERIOD_MS);
+    vTaskDelay(18*4 / portTICK_PERIOD_MS);
   }
 }
 #endif
@@ -233,7 +232,7 @@ uint32_t get_usec() {
 rmt_config_t config;
 rmt_item32_t items[1];
  
-
+#ifdef RMT_PULSES
 void send_remote_pulses() {
 
   config.rmt_mode = RMT_MODE_TX;
@@ -245,22 +244,26 @@ void send_remote_pulses() {
   config.tx_config.idle_output_en = 1;
   config.tx_config.idle_level = RMT_IDLE_LEVEL_LOW;
   config.tx_config.carrier_level = RMT_CARRIER_LEVEL_HIGH;
+  // This was introduced in later versions of esp-idf
+  config.flags = RMT_CHANNEL_FLAGS_ALWAYS_ON;
   config.clk_div = 80; // 80MHz / 80 = 1MHz 0r 1uS per count
  
   rmt_config(&config);
   rmt_driver_install(config.channel, 0, 0);  //  rmt_driver_install(rmt_channel_t channel, size_t rx_buf_size, int rmt_intr_num)
    
-  items[0].duration0 = 1500;  // 0.5 ms (30)
+  items[0].duration0 = 30000;  // 30 ms 
   items[0].level0 = 1;
-  items[0].duration1 = 3000;   // 250  0.25 ms  (15)
+  items[0].duration1 = 15000;   // 15 ms  
   items[0].level1 = 0;  
 
 }
-
+#endif
 
 static void remoteTask(void *inpar) {
-    rmt_write_items(config.channel, items, 1, 0);
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    for(;;) {
+        rmt_write_items(config.channel, items, 1, 0);
+        vTaskDelay(4000 / portTICK_PERIOD_MS);
+    }
 }
 
 void sump_server_init(void);
@@ -568,7 +571,7 @@ ota_event_group = xEventGroupCreate();
     //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    #if 1
+    #if 0
         // If you want to check the pixel clock
         //gpio_set_direction(PIXEL_LEDC_PIN, GPIO_MODE_OUTPUT);
         pwm(PIXEL_LEDC_PIN,40000);
@@ -595,11 +598,6 @@ ota_event_group = xEventGroupCreate();
     gpio_set_level(GPIO_NUM_4, 0);
 #endif
 
-#ifdef RMT_PULSES
-    gpio_set_direction(PULSE_PIN, GPIO_MODE_OUTPUT);
-    send_remote_pulses();
-    rmt_write_items(config.channel, items, 1, 0);
-#endif
 
  //gpio_set_direction(GPIO_NUM_0, GPIO_MODE_OUTPUT);
 
@@ -610,6 +608,18 @@ ota_event_group = xEventGroupCreate();
     xTaskList[xtaskListCounter++] = TaskHandle_tmp;
 
 #endif
+
+
+#ifdef RMT_PULSES
+    gpio_set_direction(PULSE_PIN, GPIO_MODE_OUTPUT);
+    send_remote_pulses();
+    rmt_write_items(config.channel, items, 1, 0);
+    // This should not be necessary, but is a workaround for changes in later esp-idf
+    
+    xTaskCreatePinnedToCore(&remoteTask, "remoteTask", 4096, NULL, 20, &TaskHandle_tmp, 0);
+    xTaskList[xtaskListCounter++] = TaskHandle_tmp;
+#endif
+
 
     // Analouge out, however this interferes with analogue in
     //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
