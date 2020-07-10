@@ -16,7 +16,7 @@
 
 // This might be used for sampling with DMA
 //#define USE_CAMERA_IF 1
-#define PIXEL_LEDC_PIN 22
+#define PIXEL_LEDC_PIN 33
 
 #define PULSE_PIN 14
 #define RMT_PULSES 1

@@ -283,14 +283,14 @@ void example_i2s_adc_dac(void*arg);
 
 
 
-#if 0
+#if 1
 void pwm(int gpioNum, uint32_t frequency) {
     
 	ledc_timer_config_t timer_conf;
 	timer_conf.duty_resolution    = 2;
 	timer_conf.freq_hz    = frequency;
-	timer_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
-	//timer_conf.timer_num  = LEDC_TIMER_3;
+	timer_conf.speed_mode = 0; //High speed mode should be 0...  LEDC_LOW_SPEED_MODE;  // LEDC_HIGH_SPEED_MODE;
+	timer_conf.timer_num  = LEDC_TIMER_3;
     timer_conf.clk_cfg = LEDC_AUTO_CLK;
 	ESP_ERROR_CHECK(ledc_timer_config(&timer_conf));
    
@@ -300,7 +300,7 @@ void pwm(int gpioNum, uint32_t frequency) {
 	ledc_conf.gpio_num   = gpioNum;
     ledc_conf.hpoint = 0;
 	ledc_conf.intr_type  = LEDC_INTR_DISABLE;
-	ledc_conf.speed_mode = LEDC_HIGH_SPEED_MODE;
+	ledc_conf.speed_mode = 0; //LEDC_HIGH_SPEED_MODE;
 	ledc_conf.timer_sel  = LEDC_TIMER_3;
 	ESP_ERROR_CHECK(ledc_channel_config(&ledc_conf));
 
@@ -399,7 +399,7 @@ ota_event_group = xEventGroupCreate();
     //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    #if 0
+    #if 1
         // If you want to check the pixel clock
         //gpio_set_direction(PIXEL_LEDC_PIN, GPIO_MODE_OUTPUT);
         pwm(PIXEL_LEDC_PIN,40000);

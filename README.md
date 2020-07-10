@@ -16,6 +16,13 @@ The default configuration is to use rigol-ds over ethernet port 5555
 Go to the configuration options and set ssid and password
     make menuconfig 
     Wifi and TFT Configuration  --->
+# Dev branch
+
+This branch requires esp-idf 4.2, It aims to run with DMA and
+parallell i2s mode for digital aquisition. This is how it could have been usable, if it was working.
+
+It tries to use the ledc module to generate P_CLK, unfortunately I have not been able to get it running.
+I mainly tried with the esp32s2.
 
 Also set
 ```
@@ -172,6 +179,48 @@ THE Jtag interface uses the following pins.
 4 	MTCK / GPIO13 	TCK
 5 	MTMS / GPIO14 	TMS
 ```
+
+# esp32s2 jtag pin mapping
+
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 8%" />
+<col style="width: 59%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"></th>
+<th class="head"><p>ESP32-S2 Pin</p></th>
+<th class="head"><p>JTAG Signal</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>CHIP_PU</p></td>
+<td><p>TRST_N</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>MTDO / GPIO40</p></td>
+<td><p>TDO</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>MTDI / GPIO41</p></td>
+<td><p>TDI</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>MTCK / GPIO39</p></td>
+<td><p>TCK</p></td>
+</tr>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>MTMS / GPIO42</p></td>
+<td><p>TMS</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>GND</p></td>
+<td><p>GND</p></td>
+</tr>
+</tbody>
+</table>
 
 # Wrover debug pins
 The following red/green/blue led is available on the WROVER kit.

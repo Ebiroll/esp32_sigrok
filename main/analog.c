@@ -1,4 +1,4 @@
-#if 1
+#if 0
 #include "analog.h"
 #include <driver/adc.h>
 #include "freertos/FreeRTOS.h"
