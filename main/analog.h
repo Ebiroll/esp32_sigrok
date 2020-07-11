@@ -6,7 +6,7 @@
 
 #define SAMPLING_DONE_BIT   1
 
-#define NUM_SAMPLES 14000
+#define NUM_SAMPLES 1400
 //14000
 
 typedef enum TrigState {

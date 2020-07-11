@@ -19,10 +19,13 @@ Go to the configuration options and set ssid and password
 # Dev branch
 
 This branch requires esp-idf 4.2, It aims to run with DMA and
-parallell i2s mode for digital aquisition. This is how it could have been usable, if it was working.
+parallell i2s mode for digital aquisition. This is how all this could have been usable, if it was working.
 
 It tries to use the ledc module to generate P_CLK, unfortunately I have not been able to get it running.
 I mainly tried with the esp32s2.
+The code is in sampler.c, so change to #if § in sampler.c and #if 0 in analog.c 
+
+
 
 Also set
 ```

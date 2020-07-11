@@ -44,6 +44,7 @@
 #include "scpi/error.h"
 #include "scpi/constants.h"
 #include "scpi/utils.h"
+#include <stdio.h>
 
 /**
  * Write data to SCPI output
@@ -224,6 +225,7 @@ scpi_bool_t SCPI_Parse(scpi_t * context, char * data, int len) {
                 /* calculate length of errornouse header and trim \r\n */
                 size_t r2 = r;
                 while (r2 > 0 && (data[r2 - 1] == '\r' || data[r2 - 1] == '\n')) r2--;
+                printf("=>%s<=\n",data);
                 SCPI_ErrorPushEx(context, SCPI_ERROR_UNDEFINED_HEADER, data, r2);
                 result = FALSE;
             }

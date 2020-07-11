@@ -8,7 +8,7 @@
 //#define OTA_RUN_SERVER 1
 
 // First pin for parallell input 13-20
-#define PARALLEL_0  12
+#define PARALLEL_0  13
 
 #define UART_TEST_OUTPUT 1
 #define UART_OUTPUT_PIN 17
@@ -16,10 +16,10 @@
 
 // This might be used for sampling with DMA
 //#define USE_CAMERA_IF 1
-#define PIXEL_LEDC_PIN 33
+#define PIXEL_LEDC_PIN 22
 
-#define PULSE_PIN 14
-#define RMT_PULSES 1
+#define PULSE_PIN 15
+//#define RMT_PULSES 1
 
 
 #undef RUN_IN_QEMU

@@ -242,8 +242,6 @@ static void scpi_server_thread(void *arg) {
         socklen_t clilen;
         vTaskDelay(500 / portTICK_PERIOD_MS);
 
-        printf("Connection established %s\r\n", inet_ntoa(cliaddr.sin_addr));
-
         clilen = sizeof (cliaddr);
         clifd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen);
 

@@ -20,7 +20,7 @@
 
 #define CAPTURE_SIZE 14000
 
-#define ledPin 39 //Led on while running and Blinks while transfering data.
+#define ledPin 26 //Led on while running and Blinks while transfering data.
 
 
 void enable_out_clock( int freq_in_hz );

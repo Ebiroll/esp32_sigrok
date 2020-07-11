@@ -287,7 +287,7 @@ void example_i2s_adc_dac(void*arg);
 void pwm(int gpioNum, uint32_t frequency) {
     
 	ledc_timer_config_t timer_conf;
-	timer_conf.duty_resolution    = 2;
+	timer_conf.duty_resolution    = 8;
 	timer_conf.freq_hz    = frequency;
 	timer_conf.speed_mode = 0; //High speed mode should be 0...  LEDC_LOW_SPEED_MODE;  // LEDC_HIGH_SPEED_MODE;
 	timer_conf.timer_num  = LEDC_TIMER_3;
@@ -399,10 +399,10 @@ ota_event_group = xEventGroupCreate();
     //ESP_LOGI(TAG,"free mem8bit: %d mem32bit: %d\n",free8start,free32start);
     //printf("free mem8bit: %d mem32bit: %d\n",free8start,free32start);
 
-    #if 1
+    #if 0
         // If you want to check the pixel clock
-        //gpio_set_direction(PIXEL_LEDC_PIN, GPIO_MODE_OUTPUT);
-        pwm(PIXEL_LEDC_PIN,40000);
+        gpio_set_direction(PIXEL_LEDC_PIN, GPIO_MODE_INPUT);
+        pwm(PIXEL_LEDC_PIN,4000);
     #endif
 
     //gpio_set_direction(GPIO_NUM_13, GPIO_MODE_OUTPUT);
@@ -450,9 +450,37 @@ ota_event_group = xEventGroupCreate();
     sump_uart();
 #endif
 
+#if 0
+  ledc_fade_func_install(0);
   vTaskDelay(2000 / portTICK_PERIOD_MS);
-  vTaskDelay(2000 / portTICK_PERIOD_MS);
-  vTaskDelay(2000 / portTICK_PERIOD_MS);
+#define LEDC_TEST_DUTY         (4000)
+#define LEDC_TEST_FADE_TIME    (3000)
+
+    printf("Fade to 4000\n");
+
+    ledc_set_fade_with_time(0,
+                    LEDC_CHANNEL_0, LEDC_TEST_DUTY, LEDC_TEST_FADE_TIME);
+            ledc_fade_start(0 /*Speed mode */,
+                    LEDC_CHANNEL_0, LEDC_FADE_NO_WAIT);
+
+  vTaskDelay(4000 / portTICK_PERIOD_MS);
+    printf("Fade to 0\n");
+    ledc_set_fade_with_time(0,
+                    LEDC_CHANNEL_0, LEDC_TEST_DUTY, LEDC_TEST_FADE_TIME);
+            ledc_fade_start(0 /*Speed mode */,
+                    LEDC_CHANNEL_0, LEDC_FADE_NO_WAIT);
+
+
+  vTaskDelay(4000 / portTICK_PERIOD_MS);
+
+    printf("Fade to 4000\n");
+
+    ledc_set_fade_with_time(0,
+                    LEDC_CHANNEL_0, LEDC_TEST_DUTY, 1000);
+            ledc_fade_start(0 /*Speed mode */,
+                    LEDC_CHANNEL_0, LEDC_FADE_NO_WAIT);
+
+#endif
   vTaskDelay(2000 / portTICK_PERIOD_MS);
   vTaskDelay(2000 / portTICK_PERIOD_MS);
   vTaskDelay(2000 / portTICK_PERIOD_MS);

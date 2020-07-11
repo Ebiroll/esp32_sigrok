@@ -1,4 +1,4 @@
-#if 0
+#if 1
 #include "analog.h"
 #include <driver/adc.h>
 #include "freertos/FreeRTOS.h"
@@ -63,9 +63,12 @@ void setup_digital() {
    adc1_pad_get_io_num(ADC1_CHANNEL_0, &my_anal_num);
    printf("Analog PIN=%d\n",my_anal_num);
 
-
+#ifdef CONFIG_IDF_TARGET_ESP32S2
    adc1_config_width(ADC_WIDTH_BIT_12+1);
-   adc1_config_channel_atten(ADC1_CHANNEL_0,ADC_ATTEN_DB_0);
+#else
+   adc1_config_width(ADC_WIDTH_BIT_12);
+#endif
+   adc1_config_channel_atten(ADC1_CHANNEL_0,ADC_ATTEN_DB_11);
 
   for (int i = 0; i < 16; i++) {
 
@@ -96,7 +99,7 @@ void setup_digital() {
 #endif     
      else {
          // Unused on esp32s2 , pin 26 is used for SPIRAM
-         if (((PARALLEL_0 +i)!=20) && ((PARALLEL_0 +i)!=24) && ((PARALLEL_0 +i)!=26)) {
+         if (((PARALLEL_0 +i)!=20) && ((PARALLEL_0 +i)!=24) && ((PARALLEL_0 +i)!=26) && ((PARALLEL_0 +i)!=28) && ((PARALLEL_0 +i)!=29)) {
             gpio_set_direction( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_MODE_INPUT);
             gpio_set_pull_mode( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_FLOATING);
          }
@@ -250,7 +253,7 @@ uint8_t* get_sample_values() {
 
     */
 
-    sample_point=0;
+    int sample_ix=0;
     int min=35000;
     int max=-35000;
 
@@ -266,15 +269,14 @@ uint8_t* get_sample_values() {
     char* repacked=(char*)analouge_in_values;
 
     for(int i=0;i<NUM_SAMPLES;i++) {
-      uint32_t mv= analouge_in_values[sample_point];  //esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point]	, &characteristics);
+      uint32_t mv= analouge_in_values[sample_ix];  //esp_adc_cal_raw_to_voltage(analouge_in_values[sample_ix]	, &characteristics);
         // Calibrate values
-        //analouge_in_values[sample_point]=sample_point;
-        *repacked=127*analouge_in_values[sample_point]/max;
+        //analouge_in_values[sample_ix]=sample_ix;
+        *repacked=120*(analouge_in_values[sample_ix]-max/2)/max;
         repacked++;
-        sample_point++;
+        sample_ix++;
     }
 
-    sample_point=0;
     return (uint8_t *)analouge_in_values;
 }
 
@@ -284,13 +286,14 @@ uint8_t* get_values() {
     esp_adc_cal_characteristics_t characteristics;
     esp_adc_cal_get_characteristics(V_REF, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, &characteristics);
 
-    sample_point=0;
+    sample_ix=0;
     for(int i=0;i<NUM_SAMPLES;i++) {
-        uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_point], &characteristics);
-        analouge_values[sample_point]=voltage_to_RawByte(mv);
-        sample_point++;
+        uint32_t mv=esp_adc_cal_raw_to_voltage(analouge_in_values[sample_ix], &characteristics);
+        analouge_values[sample_ix]=voltage_to_RawByte(mv);
+        sample_ix++;
     }
   */
+    int sample_ix=0;
     if (xSemaphore==NULL) {
         setup_digital();
         xSemaphore = xSemaphoreCreateMutex();
@@ -313,9 +316,9 @@ uint16_t* get_digital_values() {
         printf("RESAMP\n");
 #if 0
         int sampleIx=0;
-        for (int sample_point=0;sample_point<NUM_SAMPLES;sample_point++) {
-            if (sample_point%20!=0) {
-                digital_in_values[sampleIx++]=cc_and_digital[sample_point];
+        for (int sample_ix=0;sample_ix<NUM_SAMPLES;sample_ix++) {
+            if (sample_ix%20!=0) {
+                digital_in_values[sampleIx++]=cc_and_digital[sample_ix];
             } 
         }
     }
@@ -325,18 +328,18 @@ uint16_t* get_digital_values() {
         uint32_t oneSample_time=0;
         int delta=0;
         // First time around we get a cache miss, then delays becomes stable
-        for (int sample_point=20;sample_point<(NUM_SAMPLES*19) && (sampleIx<NUM_SAMPLES);sample_point+=20) {
-            oneSample_time=cc_and_digital[sample_point+20]/20;
+        for (int sample_ix=20;sample_ix<(NUM_SAMPLES*19) && (sampleIx<NUM_SAMPLES);sample_ix+=20) {
+            oneSample_time=cc_and_digital[sample_ix+20]/20;
             for (int j=1;j<20;j++) {
                 delta+=oneSample_time;
                 if(delta>ccount_delay) {
-                       digital_in_values[sampleIx]=cc_and_digital[sample_point+j];
+                       digital_in_values[sampleIx]=cc_and_digital[sample_ix+j];
                        //printf(" %d-",j); 
                        sampleIx++;
                        delta-=ccount_delay;
                 }
             }       
-            //printf(" %d %d\n",sampleIx,cc_and_digital[sample_point]);
+            //printf(" %d %d\n",sampleIx,cc_and_digital[sample_ix]);
         }
     }
    return digital_in_values;
@@ -357,7 +360,7 @@ void stop_aquisition() {
 
 uint8_t fake_data=0;
 
-//int time_called=0;;
+int time_called=0;;
 void sample_thread(void *param) {
 
     bool got_sem=false;
@@ -440,6 +443,8 @@ void sample_thread(void *param) {
         test=get_delta();
 
         if (ccount_delay<8000) { 
+            sample_point=0;
+
             printf("-----------------------\n");
 
             // Disable  C callable interrupts 
@@ -494,9 +499,9 @@ void sample_thread(void *param) {
             __asm__("MEMW");          
                 cc_and_digital[sample_point+19]=parallel_read();
 
-                // TDOD, Analog values are offset, fix
-                voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
-                analouge_in_values[sample_point/20]=voltage;
+                // TDOD, Analog values takes too long time to sample
+                // voltage = adc1_get_raw(ADC1_TEST_CHANNEL);
+                // analouge_in_values[sample_point/20]=voltage;
                 taskYIELD();
 
                 sample_point+=20;
@@ -514,6 +519,7 @@ void sample_thread(void *param) {
             //digital_in_values[NUM_SAMPLES/2]=parallel_read();
 
             while (sample_point<maxSamples && (stop_aq==false)) {
+                // Normal adc
                 while (accumulated_ccount<ccount_delay) {
                     taskYIELD();
                     accumulated_ccount+=get_delta();
@@ -528,10 +534,14 @@ void sample_thread(void *param) {
                 __asm__("MEMW");      
                 digital_in_values[sample_point]=parallel_read();
                 //sample_point++;
-                __asm__("MEMW");      
+                __asm__("MEMW");
+                int adc_ccount;
+                accumulated_ccount+=get_delta();
                 analouge_in_values[sample_point++]=adc1_get_raw(ADC1_TEST_CHANNEL);
+                adc_ccount=get_delta();
+                accumulated_ccount+=adc_ccount;
                 //if (time_called++%100==0) {
-                //    printf("-%d\n",accumulated_ccount);    
+                //    printf("%d-%d\n",adc_ccount,accumulated_ccount);    
                 //}
                 taskYIELD();
 
@@ -548,7 +558,7 @@ void sample_thread(void *param) {
         printf("++++++++++++++++++++\n");
 
         stop_aq=true;
-        g_trig_state=Stopped;
+        g_trig_state=Triggered;
 
         if (stop_aq==false) {
           vTaskDelay(2000 / portTICK_PERIOD_MS);
@@ -580,7 +590,12 @@ void start_sampling() {
     }
 
 #if USE_SEMA
-    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, 0);
+int core=1;
+#ifdef CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
+    core=0;
+#endif
+
+    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, NULL, 20, &xHandlingTask, core);
 #else
     sample_thread(NULL);
 #endif
