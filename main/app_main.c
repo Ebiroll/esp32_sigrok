@@ -47,6 +47,7 @@ SOFTWARE.
 #include "ota_server.h"
 #include "driver/ledc.h"
 #include "esp_event.h"
+#include "esp_spiffs.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "lwip/err.h"
@@ -166,28 +167,47 @@ static void init_uart()
 
 #endif
 
-#if 0
 
-// This task only prints what is received on UART1
-static void uartECHOTask(void *inpar) {
-  uart_port_t uart_num = UART_NUM_0;                                     //uart port number
+/* Function to initialize SPIFFS */
+static esp_err_t init_spiffs(void)
+{
+    ESP_LOGI(TAG, "Initializing SPIFFS");
 
-  printf("ESP32 uart echo\n");
-  int level=0;
+    esp_vfs_spiffs_conf_t conf = {
+      .base_path = "/www",
+      .partition_label = NULL,
+      .max_files = 5,   // This decides the maximum number of files that can be created on the storage
+      .format_if_mount_failed = true
+    };
 
-  while(1) {
-     int size = uart_read_bytes(uart_num, (unsigned char *)echoLine, 1, 500/portTICK_PERIOD_MS);
-     if (size<=0) {
-         echoLine[0]='T';
-     }
-    gpio_set_level(GPIO_NUM_2, level);
-    level=!level;
-    //uart_write_bytes(uart_num, (char *)echoLine, 1);
-    printf("%c",echoLine[0]);
-    uart_flush(0);
-  }
+    esp_err_t ret = esp_vfs_spiffs_register(&conf);
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+        }
+        return ESP_FAIL;
+    }
+
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(NULL, &total, &used);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+    return ESP_OK;
 }
-#endif
+
+/* Declare the function which starts the file server.
+ * Implementation of this function is to be found in
+ * file_server.c */
+esp_err_t start_file_server(const char *base_path);
+
 
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,
                                     int32_t event_id, void* event_data)
@@ -283,7 +303,7 @@ void example_i2s_adc_dac(void*arg);
 
 
 
-#if 1
+#if 0
 void pwm(int gpioNum, uint32_t frequency) {
     
 	ledc_timer_config_t timer_conf;
@@ -318,13 +338,6 @@ void app_main(void)
     init_uart();
 #endif
     
-#if 0
-    xTaskCreatePinnedToCore(&test_sample_task, "test_sample_task", 4096, NULL, 10, &xHandlingTask, 0);
-
-    // Test analog thread
-    xTaskCreatePinnedToCore(&sample_thread, "sample_thread", 4096, &xHandlingTask, 20, NULL, 0);
-#endif
-
 ota_event_group = xEventGroupCreate();
 
 #if defined(SUMP_ON_NETWORK) ||  defined (SCPI_ON_NETWORK) || defined(DEBUG_SUMP)
@@ -432,10 +445,14 @@ ota_event_group = xEventGroupCreate();
 
 #endif
 
-    // Analouge out, however this interferes with analogue in
-    //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
+  // Analouge out, however this interferes with analogue in
+  //xTaskCreate(example_i2s_adc_dac, "example_i2s_adc_dac", 1024 * 2, NULL, 21, NULL);
 
   vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+  /* Initialize file storage */
+  ESP_ERROR_CHECK(init_spiffs());
+
 
 #ifdef SCPI_ON_NETWORK
     scpi_server_init(&xHandlingTask);
@@ -449,6 +466,8 @@ ota_event_group = xEventGroupCreate();
 #if defined (SUMP_OVER_UART)
     sump_uart();
 #endif
+
+ ESP_ERROR_CHECK(start_file_server("/www"));
 
 #if 0
   ledc_fade_func_install(0);
