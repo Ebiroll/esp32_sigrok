@@ -100,7 +100,7 @@ static esp_err_t http_resp_dir_html(httpd_req_t *req, const char *dirpath)
     const size_t upload_script_size = (upload_script_end - upload_script_start);
 
     /* Add file upload form and script which on execution sends a POST request to /upload */
-    //httpd_resp_send_chunk(req, (const char *)upload_script_start, upload_script_size);
+    httpd_resp_send_chunk(req, (const char *)upload_script_start, upload_script_size);
 
     /* Send file-list table definition and column labels */
     httpd_resp_sendstr_chunk(req,
