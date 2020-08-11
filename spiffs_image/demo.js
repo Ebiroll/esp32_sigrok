@@ -237,6 +237,10 @@ function update(el){
   if (el == 'inputType' && ui.inputType.value == 4){
     $.getJSON('api/audio.json', function(data){
         console.log(data);
+        for(j=0;j<1024;j++) {
+            timeDomain[j]=600+data.samples[j]*200;
+        }
+        animate();
     });
   }
 
@@ -256,8 +260,10 @@ function update(el){
 
   } else if (el == 'inputType' && ui.inputType.value != 1){
     //cancel animation
-    streaming = false;
-    window.cancelAnimationFrame(animateId);
+    if (esp32Data==false) {
+        streaming = false;
+        window.cancelAnimationFrame(animateId);
+    }
     drawData();
   } else if (streaming == true && ui.freeze.value == false){
       animate();
@@ -304,7 +310,7 @@ function update(el){
 
 }
 
-
+var esp32Data = false;
 
 var AudioContext = (window.AudioContext || window.webkitAudioContext || window.mozAudioContext || window.oAudioContext || window.msAudioContext);
 
@@ -374,10 +380,13 @@ $(document).on("change", '#inputType-interface select', function(){
     }
 
     if ($(this).val() == 4){
+        esp32Data=true;
         streaming = true;
         $('#freq-interface').attr('disabled', 'disabled').addClass("disabled");
         $('#fdomain-interface').removeAttr('disabled').removeClass("disabled"); 
-    } 
+    } else {
+        esp32Data=false;
+    }
 
 })
 
@@ -393,13 +402,24 @@ var previousTranslate = {x:0, y:0};
 function animate(){
 
     if (streaming == true && ui.freeze.value == false){
-        // OLAS !!!         
-        if (ui.fdomain.value == true) {
-            analyser.getByteFrequencyData(timeDomain);
-        } else {
-            analyser.getByteTimeDomainData(timeDomain);
+        // OLAS !!!
+        if (esp32Data == true) {
+            $.getJSON('api/audio.json', function(data){
+                console.log(data);
+                for(j=0;j<1024;j++) {
+                    timeDomain[j]=600+data.samples[j]*200;
+                }
+                window.requestAnimationFrame(animate);     
+            });
+        
+        } else {         
+            if (ui.fdomain.value == true) {
+                analyser.getByteFrequencyData(timeDomain);
+            } else {
+                analyser.getByteTimeDomainData(timeDomain);
+            }
+            window.requestAnimationFrame(animate);            
         }
-        window.requestAnimationFrame(animate);
     }
 
     drawData();
@@ -419,17 +439,16 @@ function drawData(){
         // console.log(index);
 
 
-
-        if (streaming == true){
-
-            var height = c.height * timeDomain[i] / 256;
+        if (esp32Data == true) {
+            // console.log("i=",index,timeDomain[index]);
+            var height = c.height * timeDomain[index%1024] / 16;
             var offset = c.width * (analyser.frequencyBinCount/(analyser.frequencyBinCount-1)) * i/analyser.frequencyBinCount;
 
             // analyser.getByteTimeDomainData(timeDomain);
 
 
             var xc = i * (c.width/analyser.frequencyBinCount);
-            var yc = ui.gain.value * ((timeDomain[index] / 255) - 0.5)*200/(ui.volts.value);
+            var yc = ui.gain.value * ((timeDomain[index%1024] / 16) - 0.5)*200/(ui.volts.value);
 
             yc += c.height/2;
 
@@ -444,47 +463,75 @@ function drawData(){
 
             ctx2.lineTo(xc, yc);
 
+
         } else {
 
-            var xc = i * (c.width/analyser.frequencyBinCount);
+            if (streaming == true){
 
-            //dropdown value also needs mapping
-            scaledRangeValue = mapRange([1,2], [1,3], ui.dropdownExample.value);
+                var height = c.height * timeDomain[i] / 256;
+                var offset = c.width * (analyser.frequencyBinCount/(analyser.frequencyBinCount-1)) * i/analyser.frequencyBinCount;
 
-            //Hardcoding 6 is wrong! Gives incorrect values on small screens
-            // var amplitude = c.height/6 / ui.volts.value;
-            var amplitude = 100 / ui.volts.value; //100 pixels per division
-
-            //so total length in seconds of graph is sampleRate*numSamples
-            //console.log("total length:", numSamples/sampleRate); //=0.0053333seconds, so 1 pixel represents 0.00533/width seconds
-            //by default 100px represents 100*0.00533/width  = ??? seconds
-            //we want it to represent 1ms
+                // analyser.getByteTimeDomainData(timeDomain);
 
 
-            var yc =  -amplitude * Math.sin(2*Math.PI*xc*ui.freq.value*0.00001*ui.dropdownExample.value); //0.00001 is the number of seconds we want a pixel to represent, ie 1ms / 100
+                var xc = i * (c.width/analyser.frequencyBinCount);
+                var yc = ui.gain.value * ((timeDomain[index] / 255) - 0.5)*200/(ui.volts.value);
 
-            if (ui.inputType.value == 3){
-              if (yc > 0) yc = amplitude;
-              else yc = -amplitude;
+                yc += c.height/2;
+
+                // apply dc offset
+                //yc = ui.dc_offset.value*-1 + yc;
+
+                xc = mapRange([0, 0.001*ui.dropdownExample.value], [0, 100 * (numSamples/sampleRate) / c.width], xc);
+
+                // shift graph to middle of oscilloscpe
+                xc += c.width/2;
+
+
+                ctx2.lineTo(xc, yc);
+
+            } else {
+
+                var xc = i * (c.width/analyser.frequencyBinCount);
+
+                //dropdown value also needs mapping
+                scaledRangeValue = mapRange([1,2], [1,3], ui.dropdownExample.value);
+
+                //Hardcoding 6 is wrong! Gives incorrect values on small screens
+                // var amplitude = c.height/6 / ui.volts.value;
+                var amplitude = 100 / ui.volts.value; //100 pixels per division
+
+                //so total length in seconds of graph is sampleRate*numSamples
+                //console.log("total length:", numSamples/sampleRate); //=0.0053333seconds, so 1 pixel represents 0.00533/width seconds
+                //by default 100px represents 100*0.00533/width  = ??? seconds
+                //we want it to represent 1ms
+
+
+                var yc =  -amplitude * Math.sin(2*Math.PI*xc*ui.freq.value*0.00001*ui.dropdownExample.value); //0.00001 is the number of seconds we want a pixel to represent, ie 1ms / 100
+
+                if (ui.inputType.value == 3){
+                if (yc > 0) yc = amplitude;
+                else yc = -amplitude;
+                }
+
+
+                //apply gain
+                yc *= ui.gain.value;
+
+                //center vertically
+                yc = c.height/2 + yc;
+
+                // apply dc offset
+                //yc = ui.dc_offset.value*-1 + yc;
+
+                // shift graph to middle of oscilloscpe
+                xc += c.width/2;
+
+                // if (ui.invert.value) yc = -yc + c.height;
+
+                ctx2.lineTo(xc, yc);
+
             }
-
-
-            //apply gain
-            yc *= ui.gain.value;
-
-            //center vertically
-            yc = c.height/2 + yc;
-
-            // apply dc offset
-            //yc = ui.dc_offset.value*-1 + yc;
-
-            // shift graph to middle of oscilloscpe
-            xc += c.width/2;
-
-            // if (ui.invert.value) yc = -yc + c.height;
-
-            ctx2.lineTo(xc, yc);
-
         }
 
         previousTranslate = {x:ui.horizOffset.value,y:ui.vertOffset.value}
