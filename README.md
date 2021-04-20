@@ -30,9 +30,9 @@ Also set
 
 
 ```
-The for the Rigol, only 1400 samples is available.
+The for the Rigol, only 1400 of sample buffer is available.
 
-Pin 17 is default connected (9600 Baud UART output)
+Pin 17 is default connected (with the gpio matrox) (9600 Baud UART output)
 Then start pulseview 
 Replace 127.0.0.1 with your  
     pulseview -d rigol-ds:conn=tcp-raw/127.0.0.1/5555 -l 5
@@ -42,10 +42,10 @@ Do not use timebase less than 1 ms as timing will not be accurate.
 # Input pins
 ```
 Pin 13-20 should be setup as input 
-Pin 17 will be setup with uart test pulse
-Pin 15 uses the remote device to setd a test pulse
+Pin 17 is setup with uart test pulse
+Pin 15 uses the remote device to send a test pulse
 ```
-Only datasource live works.
+Only datasource live on the rigol emulation works.
 
 # Analogue
 ```
@@ -252,11 +252,11 @@ static void uartWRITETask(void *inpar) {
 ![uart](uart.png)
 
 # Project status
-Analog values are compressed sp the actual values are not correct.
+Analog values are compressed so the actual values are not correct.
 The remote device has stopped working, not sure if this is an esp-idf issue or some accidental change in my code.  
 I removed it from the default setting.
 
-Now it is working with sigrok and the latest version of esp-idf.
+However, now it is working with sigrok and the latest version of esp-idf.
 
 Perhaps this bugfix was helpful, but initially the SUMP protocol was not working
 https://github.com/espressif/esp-idf/commit/f482e9e54ce83e249e46f5ee082f6ffb61431339
@@ -294,8 +294,7 @@ For digital data with ols (sump) driver
   Normal rigol-data is handled on port 5555 
 
 
-Further development of ESP32 as a scope will be carried out here,
-https://github.com/Ebiroll/qemu_esp32/tree/master/examples/38_wifiscope
+Further development of ESP32 as a scope will be carried out in the dev branch,
 
 
 # Sigrok
@@ -333,14 +332,14 @@ And client can be run as,
 # OTA updates,
 
 If you enable Partition Table (Factory app, two OTA definitions)  
-You can update the application with, change according to your IP
+You can update the application with (change according to your IP)
 
     curl 192.168.1.111:8032 --data-binary @- < build/sigrok.bin
 
 
 
 # Command line run
-When developing, this is useful and repeatable
+When developing, These commands are useful and repeatable
 
 ```
 sigrok-cli -d ols:conn=/dev/ttyUSB0 -l 5  -c samplerate=10Khz --samples 100
@@ -354,7 +353,7 @@ SCPI over the network also works now.
 
 It is possible tp run sump over network or USB, however ols driver only supports SUMP over serial.
 To use SUMP over network you must find some other program.
-I tried the PIPISTRELLO p-ols driver. This is however his did not work.
+I tried the PIPISTRELLO p-ols driver. This is however did not work.
 
 
 To debug this use printf for debugging
@@ -384,7 +383,7 @@ sigrok-cli -d p-ols:conn=tcp-raw/192.168.1.130/5566  -l 5 --scan
 I never got SUMP over TCP/IP to work.
 
 
-For data aquisition High resolution timer is used.
+For data aquisition the high resolution timer is used.
 http://esp-idf.readthedocs.io/en/latest/api-reference/system/esp_timer.html
 
 
