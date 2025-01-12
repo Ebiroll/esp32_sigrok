@@ -1,6 +1,6 @@
 #if 1
 #include "analog.h"
-#include <driver/adc.h>
+#include <esp_adc/adc_oneshot.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -11,7 +11,7 @@
 #include "sdkconfig.h"
 #define USE_SEMA 1
 #include "soc/efuse_reg.h"
-#include <esp_int_wdt.h>
+#include "esp_private/esp_int_wdt.h"
 
 
 #ifdef CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
@@ -211,7 +211,7 @@ A(V) = [(240 -<Raw_Byte> ) * (<Volts_Div> / 25) - (<Volts_Div> * 4.6)]
 
 A(V) +  (<VD> * 4.6) = [(240 -<Raw_Byte> ) * (<VD> / 25) ] 
 
-AV/VD + 4.6/VD = (240 -R) / 25
+AV/VD + 4.6/VD = (240 - R) / 25
 
 (AV/VD + 4.6/VD ) *25 = 240 - R 
 
@@ -677,4 +677,3 @@ bool samples_finnished() {
 
     return ret;
 }
-#endif
