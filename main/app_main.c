@@ -39,8 +39,8 @@ SOFTWARE.
 #include "scpi_server.h"
 #include "analog.h"
 #include <driver/rmt.h>
-#include "driver/i2s.h"
-#include "driver/adc.h"
+#include "driver/i2s_std.h"
+#include "driver/adc_oneshot.h"
 #include "app-config.h"
 #include "Header.h"
 #include "ota_server.h"

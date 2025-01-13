@@ -13,6 +13,9 @@
 #include "nvs_flash.h"
 #include "collector.h"
 #include "driver/ledc.h"
+#include <esp_adc/adc_oneshot.h>
+#include <spi_flash_mmap.h>
+#include <driver/i2s_std.h>
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define LEDC_HS_TIMER          LEDC_TIMER_0
@@ -708,7 +711,7 @@ void i2s_parallel_setup(const i2s_parallel_config_t *cfg) {
   // Clear flags which are used in I2S serial mode
   //I2S0.sample_rate_conf.rx_bits_mod = 8;
   I2S0.sample_rate_conf.rx_bits_mod = 16;
-  //dev->sample_rate_conf.rx_bck_div_num = 16; //ToDo: Unsure about what this does...
+  //dev->sample_rate_conf.tx_bck_div_num = 16; //ToDo: Unsure about what this does...
   I2S0.sample_rate_conf.rx_bck_div_num = 1;  // datasheet says this must be 2 or greater (but 1 seems to work)
   
   // this combination is 20MHz
