@@ -22,7 +22,7 @@
 // LWIP
 // http://www.atmel.com/Images/Atmel-42233-Using-the-lwIP-Network-Stack_AP-Note_AT04055.pdf
 // http://lwip.wikia.com/wiki/LwIP_Wiki
-
+#if 0
 #include "lwip/opt.h"
 #include "lwip/def.h"
 #include "lwip/mem.h"
@@ -1669,7 +1669,7 @@ low_level_input(struct netif *netif)
 #endif
   return NULL;
 }
-
+#endif
 /*----------------------------------------------------------------------------------------
   ****************************************************************************************
   ----------------------------------------------------------------------------------------*/

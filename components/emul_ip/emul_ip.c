@@ -7,6 +7,7 @@
 * By   : ZengMing @ DEP,Tsinghua University,Beijing,China
 *********************************************************************************************************
 */
+#if 0
 #include    <stdio.h>
 #include    <string.h>
 #include    <ctype.h>
@@ -23,7 +24,7 @@
 #include "netif/etharp.h"
 #include "lwip/tcpip.h"
 #include "lwip/init.h"
-#include "esp_event.h"
+//#include "esp_event.h"
 #include "esp_event_loop.h"
 
 
@@ -173,6 +174,6 @@ void ethernet_hardreset(void)	//These reset codes are built for C6711 DSK
 {
 
 }
-
+#endif
 
 

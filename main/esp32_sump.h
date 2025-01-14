@@ -22,6 +22,7 @@
  */
 #include "lwip/tcpip.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 //#include "task.h"
 //#include "esp_system.h"
 //#include "lwip/tcp.h"
@@ -69,7 +70,7 @@ typedef struct _sump_t {
 	struct netconn *io;
 	struct netconn *io_listen;
 
-	xQueueHandle   evtQueue;
+	QueueHandle_t   evtQueue;
 } sump_context_t;
 
 

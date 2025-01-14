@@ -276,7 +276,7 @@ static void scpi_server_thread(void *arg) {
         close(clifd);
     }
 
-    return (EXIT_SUCCESS);
+    return;
 }
 
 #define SCPI_THREAD_PRIO (tskIDLE_PRIORITY + 2)

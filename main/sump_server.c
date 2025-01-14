@@ -154,7 +154,7 @@ void sump_debug(char *str,unsigned int value) {
 int SUMP_Error(sump_context_t * context, int_fast16_t err) {
     (void) context;
     /* BEEP */
-    printf("**ERROR: %d, \"%d\"\r\n", (int32_t) err, (err));
+    printf("**ERROR: %d, \"%d\"\r\n", (int) err, (int)(err));
     if (err != 0) {
         /* New error */
         /* Beep */
@@ -285,7 +285,7 @@ static struct netconn * createSumpServer(int port) {
 
 static void waitServer(sump_context_t* context, queue_event_t * evt) {
     /* 0.5 s timeout */
-    if (xQueueReceive(context->evtQueue, evt, 500 * portTICK_RATE_MS) != pdPASS) {
+    if (xQueueReceive(context->evtQueue, evt, 500 * portTICK_PERIOD_MS) != pdPASS) {
         evt->cmd = SUMP_MSG_TIMEOUT;
     }
 }

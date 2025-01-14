@@ -1,4 +1,3 @@
-#if 1
 #include "analog.h"
 #include <esp_adc/adc_oneshot.h>
 #include "freertos/FreeRTOS.h"
@@ -12,7 +11,10 @@
 #define USE_SEMA 1
 #include "soc/efuse_reg.h"
 #include "esp_private/esp_int_wdt.h"
-
+//#include "hal/adc_types.h"
+#include <driver/adc.h>
+#include "esp_rom_gpio.h"
+#include "esp_adc_cal.h"
 
 #ifdef CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
 #define CPU_FREQ CONFIG_ESP32S2_DEFAULT_CPU_FREQ_MHZ
@@ -78,7 +80,7 @@ void setup_digital() {
      else {
          // Skip unused pins
          if (((PARALLEL_0 +i)!=20) && ((PARALLEL_0 +i)!=24) && ((PARALLEL_0 +i)!=28) && ((PARALLEL_0 +i)!=29)) {
-            gpio_pad_select_gpio(PARALLEL_0 +i);
+            esp_rom_gpio_pad_select_gpio(PARALLEL_0 +i);
             gpio_set_direction( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_MODE_INPUT);
             gpio_set_pull_mode( PARALLEL_0 + GPIO_NUM_0 +i,GPIO_FLOATING);
          }
@@ -87,6 +89,19 @@ void setup_digital() {
 }
 
 //After that, you can use the following functions to set the 8 pins as inputs or outputs, and to read the input values and write the output values:
+// Saved for reference
+
+// Not sure where to find these
+// Remove if you do
+#define GPIO_BASE_ADDR ((uintptr_t)0x60004000)
+#define GPIO_IN_REG  0x3FF4403C
+#define GPIO_OUT_REG 0x3FF44004 
+// #define GPIO_ENABLE_REG      ((uintptr_t)(GPIO_BASE_ADDR + 0x020))
+#define GPIO_ENABLE_W1TS_REG ((uintptr_t)(GPIO_BASE_ADDR + 0x024))
+#define GPIO_ENABLE_W1TC_REG ((uintptr_t)(GPIO_BASE_ADDR + 0x028))
+
+
+
 void parallel_set_inputs(void) {
   REG_WRITE(GPIO_ENABLE_W1TC_REG, 0xFF << PARALLEL_0);
 }
@@ -101,7 +116,6 @@ inline uint16_t parallel_read(void) {
 
   return (ret);
 }
-
 void parallel_write(uint8_t value) {
   uint32_t output =
     (REG_READ(GPIO_OUT_REG) & ~(0xFF << PARALLEL_0)) | (((uint32_t)value) << PARALLEL_0);
@@ -153,7 +167,7 @@ void setTimescale(float scale){
 // This function can be used to find the true value for V_REF
 void route_adc_ref()
 {
-    esp_err_t status = adc2_vref_to_gpio(GPIO_NUM_25);
+    esp_err_t status = adc_vref_to_gpio(ADC_UNIT_1,GPIO_NUM_25);
     if (status == ESP_OK){
         printf("v_ref routed to GPIO\n");
     }else{

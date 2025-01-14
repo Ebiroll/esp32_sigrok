@@ -18,7 +18,7 @@ static int connect_socket = 0;
 void ota_server_task(void *param)
 {
 	xEventGroupWaitBits(ota_event_group, OTA_CONNECTED_BIT, false, true, portMAX_DELAY);
-	ota_server_start();
+	//ota_server_start();
 	vTaskDelete(NULL);
 }
 
@@ -138,6 +138,7 @@ static esp_err_t create_tcp_server()
     return ESP_OK;
 }
 
+#if 0
 void ota_server_start(void)
 {
 	uint8_t percent_loaded;
@@ -238,3 +239,4 @@ void ota_server_start(void)
 
     esp_restart();
 }
+#endif

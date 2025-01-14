@@ -184,7 +184,7 @@ static scpi_result_t TEST_Numbers(scpi_t * context) {
 
     SCPI_CommandNumbers(context, numbers, 2, 1);
 
-    fprintf(stderr, "TEST numbers %d %d\r\n", numbers[0], numbers[1]);
+    fprintf(stderr, "TEST numbers %d %d\r\n", (int)numbers[0], (int)numbers[1]);
 
     return SCPI_RES_OK;
 }
@@ -355,7 +355,7 @@ static scpi_result_t TEST_Chanlst(scpi_t *context) {
         size_t i;
         fprintf(stderr, "TEST_Chanlst: ");
         for (i = 0; i< arr_idx; i++) {
-            fprintf(stderr, "%d!%d, ", array[i].row, array[i].col);
+            fprintf(stderr, "%d!%d, ",(int) array[i].row, (int) array[i].col);
         }
         fprintf(stderr, "\r\n");
     }
@@ -1026,11 +1026,11 @@ static scpi_result_t wav_stat(scpi_t * context) {
     char tmp_buff[20];
 
     if (get_trig_state()==Running) {
-      sprintf(tmp_buff,"READ,%d",memLen);
+      sprintf(tmp_buff,"READ,%d",(int)memLen);
       stop_aquisition();
       printf("---->%s",tmp_buff);
     } else {
-      sprintf(tmp_buff,"IDLE,%d",memLen);
+      sprintf(tmp_buff,"IDLE,%d",(int)memLen);
       stop_aquisition();
       printf("---->%s",tmp_buff);
     }
@@ -1192,7 +1192,7 @@ static scpi_result_t set_acq_mem(scpi_t * context) {
 
 
     if (SCPI_ParamInt32(context, &memLen, TRUE)) {
-        printf("NEW mem depth %d\r\n",memLen);
+        printf("NEW mem depth %d\r\n",(int) memLen);
         set_mem_depth(memLen);
         return SCPI_RES_OK;
     }
