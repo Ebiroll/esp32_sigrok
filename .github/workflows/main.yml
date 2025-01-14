@@ -30,12 +30,12 @@ jobs:
           platformio update
           
       - name: Check out the Release
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Run PlatformIO for ${{ matrix.test-platform }}
         run: platformio run -e ${{ matrix.test-platform }}
         
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.name }}
           path: .pio/build/esp32dev/firmware.bin
